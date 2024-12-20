@@ -17,25 +17,43 @@ export function Canvas({
   onConnectorChange,
 }: CanvasProps) {
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
-    e.dataTransfer.setData('text/plain', index.toString());
+    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'variable', data: items[index] }));
+    if (items[index].type === 'variable') {
+      e.dataTransfer.setData('variableId', items[index].id);
+    }
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.currentTarget.style.opacity = '0.5';
+    e.currentTarget.style.backgroundColor = '#f3f4f6';
   };
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.currentTarget.style.opacity = '1';
+    e.currentTarget.style.backgroundColor = '';
   };
 
-  const handleDrop = (dragIndex: number, dropIndex: number) => {
-    if (dragIndex === dropIndex) return;
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.currentTarget.style.backgroundColor = '';
+    const data = e.dataTransfer.getData('text/plain');
     
-    const newItems = [...items];
-    const [removed] = newItems.splice(dragIndex, 1);
-    newItems.splice(dropIndex, 0, removed);
-    onItemsChange(newItems);
+    try {
+      const parsedData = JSON.parse(data);
+      if (parsedData.type === 'variable') {
+        const newId = `${parsedData.data.id}-${Date.now()}`;
+        onItemsChange([...items, { ...parsedData.data, id: newId }]);
+      }
+    } catch (error) {
+      console.error('Failed to parse dropped data:', error);
+    }
+  };
+
+  const handleDropSidebar = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const variableId = e.dataTransfer.getData('variableId');
+    if (variableId) {
+      onItemRemove(variableId);
+    }
   };
 
   const handleExportTemplate = () => {
@@ -90,7 +108,7 @@ export function Canvas({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" onDrop={handleDropSidebar} onDragOver={(e) => e.preventDefault()}>
       <div className="flex justify-end gap-2 p-4 border-b">
         <button
           onClick={() => document.getElementById('import-template')?.click()}
@@ -116,7 +134,12 @@ export function Canvas({
           className="hidden"
         />
       </div>
-      <div className="flex-1 p-4 space-y-4 overflow-y-auto bg-gray-50">
+      <div 
+        className="flex-1 p-4 space-y-4 overflow-y-auto bg-gray-50"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         <div className="grid grid-cols-3 gap-4">
           {items.map((item, index) => (
             <div
@@ -124,21 +147,12 @@ export function Canvas({
               draggable
               className="relative transition-opacity duration-200"
               onDragStart={(e) => handleDragStart(e, index)}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.currentTarget.style.opacity = '1';
-                const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                if (!isNaN(dragIndex)) {
-                  handleDrop(dragIndex, index);
-                }
-              }}
             >
               {isVariable(item) ? (
                 <VariableCard
                   variable={item}
                   index={index}
+                  onDragStart={handleDragStart}
                   onUpdate={(updatedVariable) => {
                     const newItems = [...items];
                     newItems[index] = {
@@ -149,7 +163,6 @@ export function Canvas({
                     onItemsChange(newItems);
                   }}
                   onRemove={() => onItemRemove(item.id)}
-                  onDragStart={(e) => handleDragStart(e, index)}
                 />
               ) : (
                 <ConnectorCard

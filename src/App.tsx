@@ -8,14 +8,6 @@ function App() {
   const [variables, setVariables] = useState<any[]>(() => defaultVariables);
   const [items, setItems] = useState<any[]>([]);
 
-  const handleVariableAdd = (variableId: string) => {
-    const variable = variables.find((v: any) => v.id === variableId);
-    if (variable) {
-      const newId = `${variableId}-${Date.now()}`;
-      setItems(prevItems => [...prevItems, { ...variable, id: newId }]);
-    }
-  };
-
   const handleVariableCreate = (variable: any) => {
     const newVariable: any = {
       ...variable,
@@ -45,13 +37,15 @@ function App() {
       <div className="w-64 border-r bg-white">
         <Sidebar
           variables={variables}
-          onVariableAdd={handleVariableAdd}
           onVariableCreate={handleVariableCreate}
           onVariableDelete={handleVariableDelete}
           onImportVariables={handleImportVariables}
         />
       </div>
       <div className="flex-1 flex flex-col">
+        <div className="p-4 border-b bg-white">
+          <PromptOutput items={items} />
+        </div>
         <div className="p-4 border-b bg-white">
           <button
             onClick={() => {
@@ -79,9 +73,6 @@ function App() {
                 );
               }}
             />
-          </div>
-          <div className="p-4 border-t bg-white">
-            <PromptOutput items={items} />
           </div>
         </div>
       </div>
