@@ -45,7 +45,7 @@
     "asar": true,
     "directories": {
       "output": "release",
-      "buildResources": "public"
+      "buildResources": "build"
     },
     "files": [
       "dist/**/*",
@@ -80,7 +80,7 @@
           ]
         }
       ],
-      "icon": "public/icon.svg",
+      "icon": "build/icons/icon.png",
       "category": "public.app-category.developer-tools",
       "artifactName": "${productName}-${version}-${arch}.${ext}",
       "hardenedRuntime": true,

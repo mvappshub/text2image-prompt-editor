@@ -56,6 +56,14 @@ jobs:
       with:
         node-version: '18.x'
         cache: 'npm'
+        
+    - name: Install Inkscape
+      run: brew install inkscape
+      
+    - name: Convert SVG to PNG
+      run: |
+        mkdir -p build/icons
+        inkscape -w 512 -h 512 public/icon.svg -o build/icons/icon.png
     
     - name: Install dependencies
       run: npm ci
