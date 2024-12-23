@@ -44,7 +44,8 @@
     "productName": "Text2Image Prompt Editor",
     "asar": true,
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "public"
     },
     "files": [
       "dist/**/*",
@@ -53,7 +54,7 @@
     "extraResources": [
       {
         "from": "public",
-        "to": "public"
+        "to": "."
       }
     ],
     "win": {
@@ -62,7 +63,8 @@
           "target": "nsis",
           "arch": ["x64"]
         }
-      ]
+      ],
+      "icon": "public/icon.ico"
     },
     "mac": {
       "target": [
@@ -71,6 +73,7 @@
           "arch": ["x64", "arm64"]
         }
       ],
+      "icon": "public/icon.png",
       "category": "public.app-category.developer-tools"
     },
     "nsis": {

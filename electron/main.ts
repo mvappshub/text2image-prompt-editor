@@ -2,8 +2,8 @@ import { app, BrowserWindow } from 'electron'
 import * as path from 'path'
 
 // Oprava cest pro produkční build
-const DIST = path.join(__dirname, '../dist')
-const VITE_PUBLIC = app.isPackaged ? DIST : path.join(DIST, '../public')
+const DIST = path.join(__dirname, '..')
+const VITE_PUBLIC = app.isPackaged ? path.join(DIST, 'dist') : path.join(DIST, 'public')
 
 process.env.DIST = DIST
 process.env.VITE_PUBLIC = VITE_PUBLIC
@@ -16,14 +16,20 @@ function createWindow() {
     width: 1200,
     height: 800,
     title: 'Text2Image Prompt Editor',
-    icon: path.join(process.env.VITE_PUBLIC || '', 'icon.png'),
+    icon: path.join(VITE_PUBLIC, 'icon.png'),
     webPreferences: {
-      nodeIntegration: true,
+      nodeIntegration: false, // Bezpečnější nastavení
       contextIsolation: true,
+      sandbox: true,
       webSecurity: true,
       preload: path.join(__dirname, 'preload.js')
     },
   })
+
+  // Zakázat menu v produkci
+  if (app.isPackaged) {
+    win.setMenu(null)
+  }
 
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('main-process-message', (new Date).toLocaleString())
@@ -33,7 +39,7 @@ function createWindow() {
     win.loadURL(VITE_DEV_SERVER_URL)
   } else {
     // Oprava cesty k index.html pro produkční build
-    win.loadFile(path.join(__dirname, '../dist/index.html'))
+    win.loadFile(path.join(DIST, 'dist', 'index.html'))
   }
 }
 
