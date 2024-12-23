@@ -7,13 +7,14 @@ import { PromptOutput } from './components/PromptOutput';
 function App() {
   const [variables, setVariables] = useState<any[]>(() => defaultVariables);
   const [items, setItems] = useState<any[]>([]);
+  const [promptHistory, setPromptHistory] = useState<string[]>([]);
 
   const handleVariableCreate = (variable: any) => {
     const newVariable: any = {
       ...variable,
       id: `var-${Date.now()}`,
     };
-    setVariables(prev => [...prev, newVariable]);
+    setItems(prevItems => [...prevItems, newVariable]);
   };
 
   const handleVariableDelete = (variableId: string) => {
@@ -32,33 +33,53 @@ function App() {
     setVariables(prev => [...prev, ...newVariables]);
   };
 
+  const handleSavePrompt = (prompt: string) => {
+    setPromptHistory(prev => [...prev, prompt]);
+  };
+
+  const handleDeletePrompt = (index: number) => {
+    setPromptHistory(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleExportHistory = () => {
+    const text = promptHistory.join('\n');
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'prompt-history.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleAddToSidebar = (variable: any) => {
+    const newVariable = {
+      ...variable,
+      id: `var-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    };
+    setVariables(prev => [...prev, newVariable]);
+  };
+
   return (
-    <div className="flex h-screen">
-      <div className="w-64 border-r bg-white">
+    <div className="flex flex-col h-screen overflow-hidden">
+      <div className="flex-1 flex overflow-hidden">
         <Sidebar
           variables={variables}
           onVariableCreate={handleVariableCreate}
           onVariableDelete={handleVariableDelete}
           onImportVariables={handleImportVariables}
         />
-      </div>
-      <div className="flex-1 flex flex-col">
-        <div className="p-4 border-b bg-white">
-          <PromptOutput items={items} />
-        </div>
-        <div className="p-4 border-b bg-white">
-          <button
-            onClick={() => {
-              const newId = `connector-${Date.now()}`;
-              setItems(prevItems => [...prevItems, { id: newId, type: 'connector', value: '' }]);
-            }}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Add Connector
-          </button>
-        </div>
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 flex flex-col overflow-y-auto">
+          <div className="p-4 border-b bg-white">
+            <PromptOutput 
+              items={items} 
+              onSavePrompt={handleSavePrompt}
+              showHistory={false}
+            />
+          </div>
+          <div className="flex-1 min-h-0">
             <Canvas
               items={items}
               onItemsChange={setItems}
@@ -72,8 +93,21 @@ function App() {
                   )
                 );
               }}
+              onAddToSidebar={handleAddToSidebar}
             />
           </div>
+          {promptHistory.length > 0 && (
+            <div className="p-4 border-t bg-white max-h-48 overflow-y-auto">
+              <PromptOutput 
+                items={[]}
+                onSavePrompt={handleSavePrompt}
+                promptHistory={promptHistory}
+                onExportHistory={handleExportHistory}
+                onDeletePrompt={handleDeletePrompt}
+                showHistory={true}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
