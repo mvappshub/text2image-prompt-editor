@@ -22,26 +22,72 @@ jobs:
       with:
         node-version: '18.x'
         cache: 'npm'
+
+    - name: Check environment
+      shell: pwsh
+      run: |
+        Write-Host "Node version:"
+        node --version
+        Write-Host "NPM version:"
+        npm --version
+        Write-Host "Checking for icon file..."
+        if (!(Test-Path "public/icon.svg")) {
+          Write-Host "Error: icon.svg not found!"
+          exit 1
+        }
     
     - name: Install Inkscape
-      run: choco install inkscape -y
+      shell: pwsh
+      run: |
+        Write-Host "Checking for Chocolatey..."
+        if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
+          Write-Host "Error: Chocolatey not found!"
+          exit 1
+        }
+        Write-Host "Installing Inkscape..."
+        choco install inkscape -y
+        Write-Host "Inkscape version:"
+        inkscape --version
       
     - name: Convert SVG to PNG
+      shell: pwsh
       run: |
-        mkdir -p build/icons
+        Write-Host "Creating icons directory..."
+        New-Item -ItemType Directory -Force -Path build/icons
+        Write-Host "Converting SVG to PNG..."
         inkscape -w 512 -h 512 public/icon.svg -o build/icons/icon.png
+        if (!(Test-Path "build/icons/icon.png")) {
+          Write-Host "Error: PNG conversion failed!"
+          exit 1
+        }
     
     - name: Install dependencies
-      run: npm ci
+      run: |
+        echo "Installing npm dependencies..."
+        npm ci
       
     - name: Build Windows
-      run: npm run build
+      run: |
+        echo "Building Windows application..."
+        npm run build
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
-    - name: List release directory
-      run: dir release
-      shell: cmd
+    - name: Verify build artifacts
+      shell: pwsh
+      run: |
+        Write-Host "Checking release directory..."
+        if (!(Test-Path "release")) {
+          Write-Host "Error: Release directory not found!"
+          exit 1
+        }
+        Get-ChildItem release -Recurse
+        $exeFile = Get-ChildItem release -Filter *.exe | Select-Object -First 1
+        if (!$exeFile) {
+          Write-Host "Error: No .exe file found in release directory!"
+          exit 1
+        }
+        Write-Host "Found installer: $($exeFile.Name)"
       
     - name: Upload Windows artifacts
       uses: actions/upload-artifact@v4
@@ -66,26 +112,64 @@ jobs:
       with:
         node-version: '18.x'
         cache: 'npm'
+
+    - name: Check environment
+      run: |
+        echo "Node version:"
+        node --version
+        echo "NPM version:"
+        npm --version
+        echo "Checking for icon file..."
+        if [ ! -f "public/icon.svg" ]; then
+          echo "Error: icon.svg not found!"
+          exit 1
+        fi
         
     - name: Install Inkscape
-      run: brew install inkscape
+      run: |
+        echo "Installing Inkscape..."
+        brew install inkscape
+        echo "Inkscape version:"
+        inkscape --version
       
     - name: Convert SVG to PNG
       run: |
+        echo "Creating icons directory..."
         mkdir -p build/icons
+        echo "Converting SVG to PNG..."
         inkscape -w 512 -h 512 public/icon.svg -o build/icons/icon.png
+        if [ ! -f "build/icons/icon.png" ]; then
+          echo "Error: PNG conversion failed!"
+          exit 1
+        fi
     
     - name: Install dependencies
-      run: npm ci
+      run: |
+        echo "Installing npm dependencies..."
+        npm ci
       
     - name: Build macOS
-      run: npm run build:mac
+      run: |
+        echo "Building macOS application..."
+        npm run build:mac
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         CSC_IDENTITY_AUTO_DISCOVERY: false
         
-    - name: List release directory
-      run: ls -la release
+    - name: Verify build artifacts
+      run: |
+        echo "Checking release directory..."
+        if [ ! -d "release" ]; then
+          echo "Error: Release directory not found!"
+          exit 1
+        fi
+        ls -la release
+        if [ ! -f "release/"*.dmg ]; then
+          echo "Error: No .dmg file found in release directory!"
+          exit 1
+        fi
+        echo "Found DMG file(s):"
+        ls -la release/*.dmg
         
     - name: Upload macOS artifacts
       uses: actions/upload-artifact@v4
@@ -103,6 +187,13 @@ jobs:
     timeout-minutes: 15
 
     steps:
+    - name: Check GitHub token
+      run: |
+        if [ -z "${{ secrets.GITHUB_TOKEN }}" ]; then
+          echo "Error: GITHUB_TOKEN not set!"
+          exit 1
+        fi
+
     - uses: actions/download-artifact@v4
       with:
         name: windows-build
@@ -115,6 +206,17 @@ jobs:
         path: macos-artifacts
       id: download-macos
 
+    - name: Verify downloaded artifacts
+      run: |
+        echo "Checking Windows artifacts..."
+        ls -la windows-artifacts
+        echo "Checking macOS artifacts..."
+        ls -la macos-artifacts
+        if [ ! -f "windows-artifacts/"*.exe ] || [ ! -f "macos-artifacts/"*.dmg ]; then
+          echo "Error: Missing required artifacts!"
+          exit 1
+        fi
+
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
@@ -125,10 +227,31 @@ jobs:
         tag_name: v${{ github.run_number }}
         draft: false
         prerelease: false
+        body: |
+          Automated release from commit ${{ github.sha }}
+          
+          Build information:
+          - Windows build completed: 
+          - macOS build completed: 
+          
+          Artifacts:
+          - Windows installer (.exe)
+          - macOS disk image (.dmg)
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       id: create-release
       continue-on-error: true
+
+    - name: Debug Release Creation
+      if: steps.create-release.outcome == 'failure'
+      run: |
+        echo "Release creation failed. Debugging information:"
+        echo "Windows artifacts:"
+        ls -la windows-artifacts
+        echo "macOS artifacts:"
+        ls -la macos-artifacts
+        echo "GitHub context:"
+        echo "${{ toJson(github) }}"
 
     - name: Retry Release Creation
       if: steps.create-release.outcome == 'failure'
@@ -141,5 +264,15 @@ jobs:
         tag_name: v${{ github.run_number }}
         draft: false
         prerelease: false
+        body: |
+          Automated release from commit ${{ github.sha }} (retry)
+          
+          Build information:
+          - Windows build completed: 
+          - macOS build completed: 
+          
+          Artifacts:
+          - Windows installer (.exe)
+          - macOS disk image (.dmg)
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
