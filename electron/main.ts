@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import * as path from 'path'
 
 // Oprava cest pro produkční build
@@ -44,8 +44,23 @@ function createWindow() {
     })
   })
 
+  // Přidání error handleru
+  win.webContents.on('render-process-gone', (event, details) => {
+    console.error('Renderer process gone:', details.reason)
+    dialog.showErrorBox('Application Error', 'The application encountered an error and needs to restart.')
+    app.relaunch()
+    app.exit(0)
+  })
+
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('main-process-message', (new Date).toLocaleString())
+  })
+
+  // Přidání crash handleru
+  win.webContents.on('crashed', () => {
+    dialog.showErrorBox('Application Crashed', 'The application has crashed and needs to restart.')
+    app.relaunch()
+    app.exit(0)
   })
 
   if (VITE_DEV_SERVER_URL) {
@@ -57,6 +72,14 @@ function createWindow() {
       : path.join(DIST, 'dist', 'index.html')
     win.loadFile(indexHtml)
   }
+
+  // Přidání error handleru pro failed load
+  win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('Failed to load:', errorDescription)
+    dialog.showErrorBox('Loading Error', `Failed to load application: ${errorDescription}`)
+    app.relaunch()
+    app.exit(0)
+  })
 }
 
 // Správa životního cyklu aplikace
@@ -74,6 +97,14 @@ app.on('activate', () => {
   } else {
     createWindow()
   }
+})
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception:', error)
+  dialog.showErrorBox('Application Error', 'An unexpected error occurred.')
+  app.relaunch()
+  app.exit(1)
 })
 
 // Inicializace aplikace

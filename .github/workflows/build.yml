@@ -13,6 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
     
     - name: Setup Node.js
       uses: actions/setup-node@v3
@@ -27,18 +29,27 @@ jobs:
       run: npm run build
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: List release directory
+      run: dir release
+      shell: cmd
       
     - name: Upload Windows artifacts
       uses: actions/upload-artifact@v3
       with:
         name: windows-build
-        path: release/*.exe
+        path: |
+          release/*.exe
+          release/*.exe.blockmap
+        if-no-files-found: error
 
   build-macos:
     runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
     
     - name: Setup Node.js
       uses: actions/setup-node@v3
@@ -53,9 +64,45 @@ jobs:
       run: npm run build:mac
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+        CSC_IDENTITY_AUTO_DISCOVERY: false
+        
+    - name: List release directory
+      run: ls -la release
+        
     - name: Upload macOS artifacts
       uses: actions/upload-artifact@v3
       with:
         name: macos-build
-        path: release/*.dmg
+        path: |
+          release/*.dmg
+          release/*.dmg.blockmap
+        if-no-files-found: error
+
+  create-release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - uses: actions/download-artifact@v3
+      with:
+        name: windows-build
+        path: windows-artifacts
+
+    - uses: actions/download-artifact@v3
+      with:
+        name: macos-build
+        path: macos-artifacts
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          windows-artifacts/*
+          macos-artifacts/*
+        name: Release ${{ github.sha }}
+        tag_name: v${{ github.run_number }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

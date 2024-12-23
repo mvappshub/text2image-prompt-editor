@@ -14,6 +14,7 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron',
             minify: true,
+            sourcemap: false,
             rollupOptions: {
               external: ['electron']
             }
@@ -24,18 +25,31 @@ export default defineConfig({
         input: path.join(__dirname, 'electron/preload.ts'),
         vite: {
           build: {
-            minify: true
+            minify: true,
+            sourcemap: false
           }
         }
       },
-      renderer: {}
+      renderer: {
+        root: '.',
+        entry: 'index.html'
+      }
     }),
   ],
+  base: './',
   build: {
     outDir: 'dist',
     emptyOutDir: true,
     minify: true,
-    sourcemap: false
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          lucide: ['lucide-react']
+        }
+      }
+    }
   },
   optimizeDeps: {
     exclude: ['lucide-react'],
