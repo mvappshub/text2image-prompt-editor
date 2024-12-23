@@ -30,10 +30,7 @@ export default defineConfig({
           }
         }
       },
-      renderer: {
-        root: '.',
-        entry: 'index.html'
-      }
+      renderer: {}
     }),
   ],
   base: './',
