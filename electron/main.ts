@@ -3,8 +3,8 @@ import * as path from 'path'
 
 // Oprava cest pro produkční build
 const isPackaged = app.isPackaged
-const DIST = isPackaged ? path.join(process.resourcesPath, 'app.asar') : path.join(__dirname, '..')
-const VITE_PUBLIC = isPackaged ? process.resourcesPath : path.join(DIST, 'public')
+const DIST = path.join(__dirname, '..')
+const VITE_PUBLIC = path.join(process.resourcesPath, isPackaged ? '.' : '../public')
 
 // Nastavení cest pro aplikaci
 process.env.DIST = DIST
@@ -19,7 +19,7 @@ function createWindow() {
     width: 1200,
     height: 800,
     title: 'Text2Image Prompt Editor',
-    icon: path.join(VITE_PUBLIC, 'icon.png'),
+    icon: path.join(VITE_PUBLIC, 'icons', 'icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -33,6 +33,10 @@ function createWindow() {
   if (isPackaged) {
     win.setMenu(null)
   }
+
+  // Test existence souboru
+  const testPath = isPackaged ? path.join(process.resourcesPath, 'app.asar', 'dist', 'index.html') : path.join(DIST, 'dist', 'index.html')
+  console.log('Testing path exists:', testPath, require('fs').existsSync(testPath))
 
   // Nastavení content security policy
   win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
@@ -56,29 +60,22 @@ function createWindow() {
     win?.webContents.send('main-process-message', (new Date).toLocaleString())
   })
 
-  // Přidání crash handleru
-  win.webContents.on('crashed', () => {
-    dialog.showErrorBox('Application Crashed', 'The application has crashed and needs to restart.')
-    app.relaunch()
-    app.exit(0)
-  })
-
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
   } else {
     // Oprava cesty k index.html pro produkční build
-    const indexHtml = isPackaged
-      ? path.join(DIST, 'index.html')
-      : path.join(DIST, 'dist', 'index.html')
-    win.loadFile(indexHtml)
+    const indexHtml = path.join(DIST, 'dist', 'index.html')
+    console.log('Loading index.html from:', indexHtml)
+    win.loadFile(indexHtml).catch((err) => {
+      console.error('Failed to load index.html:', err)
+      dialog.showErrorBox('Loading Error', `Failed to load index.html: ${err.message}`)
+    })
   }
 
   // Přidání error handleru pro failed load
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
     console.error('Failed to load:', errorDescription)
     dialog.showErrorBox('Loading Error', `Failed to load application: ${errorDescription}`)
-    app.relaunch()
-    app.exit(0)
   })
 }
 

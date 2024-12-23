@@ -10,6 +10,7 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v3
@@ -53,6 +54,7 @@ jobs:
 
   build-macos:
     runs-on: macos-latest
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v3
@@ -96,21 +98,40 @@ jobs:
 
   create-release:
     needs: [build-windows, build-macos]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 15
 
     steps:
     - uses: actions/download-artifact@v4
       with:
         name: windows-build
         path: windows-artifacts
-
+      id: download-windows
+      
     - uses: actions/download-artifact@v4
       with:
         name: macos-build
         path: macos-artifacts
+      id: download-macos
 
     - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          windows-artifacts/*
+          macos-artifacts/*
+        name: Release ${{ github.sha }}
+        tag_name: v${{ github.run_number }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      id: create-release
+      continue-on-error: true
+
+    - name: Retry Release Creation
+      if: steps.create-release.outcome == 'failure'
       uses: softprops/action-gh-release@v1
       with:
         files: |
