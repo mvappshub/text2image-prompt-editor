@@ -50,6 +50,12 @@
       "dist/**/*",
       "dist-electron/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "public",
+        "to": "public"
+      }
+    ],
     "win": {
       "target": [
         {

@@ -1,7 +1,8 @@
 import { app, BrowserWindow } from 'electron'
 import * as path from 'path'
 
-const DIST = path.join(app.getAppPath(), '../dist')
+// Oprava cest pro produkční build
+const DIST = path.join(__dirname, '../dist')
 const VITE_PUBLIC = app.isPackaged ? DIST : path.join(DIST, '../public')
 
 process.env.DIST = DIST
@@ -17,10 +18,10 @@ function createWindow() {
     title: 'Text2Image Prompt Editor',
     icon: path.join(process.env.VITE_PUBLIC || '', 'icon.png'),
     webPreferences: {
-      nodeIntegration: false,
+      nodeIntegration: true,
       contextIsolation: true,
-      webSecurity: false,
-      preload: path.join(app.getAppPath(), 'dist-electron', 'preload.js')
+      webSecurity: true,
+      preload: path.join(__dirname, 'preload.js')
     },
   })
 
@@ -31,8 +32,8 @@ function createWindow() {
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
   } else {
-    const indexHtml = path.join(app.getAppPath(), 'dist', 'index.html')
-    win.loadFile(indexHtml)
+    // Oprava cesty k index.html pro produkční build
+    win.loadFile(path.join(__dirname, '../dist/index.html'))
   }
 }
 
