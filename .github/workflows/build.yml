@@ -94,15 +94,6 @@ jobs:
         Na Macu budete v případě potřeby přesměrováni na stránku ke stažení Pythonu.
         EOL
         
-    - name: List build contents
-      run: |
-        echo "Web build contents:"
-        ls -la dist-web
-        echo "Assets:"
-        ls -la dist-web/assets
-        echo "Total size:"
-        du -sh dist-web
-        
     - name: Create web archive
       run: |
         cd dist-web
