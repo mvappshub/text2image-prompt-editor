@@ -24,6 +24,12 @@ export function VariableCard({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Synchronizujeme lokální stav s props
+  useEffect(() => {
+    setSelectedTag(variable.selectedTag || '');
+  }, [variable.selectedTag]);
+
+  // Aktualizujeme hlavní stav při změně lokálního stavu
   useEffect(() => {
     onUpdate({
       ...variable,
@@ -50,17 +56,6 @@ export function VariableCard({
     if (availableTags.length > 0) {
       const randomIndex = Math.floor(Math.random() * availableTags.length);
       const newTag = availableTags[randomIndex];
-      
-      // Nejdřív aktualizujeme hlavní stav
-      onUpdate({
-        ...variable,
-        selectedTag: newTag,
-        separator,
-        isLocked,
-        value: newTag
-      });
-      
-      // Pak aktualizujeme lokální stav
       setSelectedTag(newTag);
     }
   };
@@ -93,6 +88,7 @@ export function VariableCard({
       draggable
       onDragStart={(e) => onDragStart?.(e, index)}
       className="group relative flex flex-col gap-2 p-4 bg-white border rounded-lg shadow-sm"
+      data-variable-card
     >
       {/* Header */}
       <div className="flex items-center gap-2">
@@ -102,7 +98,6 @@ export function VariableCard({
             onClick={handleRandomTag}
             className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
             title="Random Tag"
-            data-random-tag-button
           >
             <Dices size={16} />
           </button>

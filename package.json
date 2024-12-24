@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
+    "build:win": "tsc && vite build && electron-builder --win",
     "build:mac": "tsc && vite build && electron-builder --mac",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
@@ -49,8 +50,7 @@
     },
     "files": [
       "dist/**/*",
-      "dist-electron/**/*",
-      "package.json"
+      "dist-electron/**/*"
     ],
     "extraResources": [
       {
@@ -64,10 +64,13 @@
         {
           "target": "nsis",
           "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
         }
       ],
-      "icon": "build/icons/icon.png",
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "icon": "build/icon.ico"
     },
     "mac": {
       "target": [
@@ -76,8 +79,8 @@
           "arch": ["x64", "arm64"]
         }
       ],
-      "icon": "build/icons/icon.png",
-      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns",
+      "category": "public.app-category.graphics-design",
       "artifactName": "${productName}-${version}-${arch}.${ext}",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,

@@ -93,24 +93,28 @@ export function Canvas({
       <div className="flex justify-end gap-2 p-4 border-b">
         <button
           onClick={() => {
-            const newItems = items.map(item => {
-              if (item.type === 'variable' && !item.isLocked && item.tags?.length > 0) {
+            // Vytvoříme kopii items pro synchronní aktualizaci
+            const updatedItems = [...items];
+            
+            // Najdeme všechny proměnné karty
+            const variableCards = document.querySelectorAll('[data-variable-card]');
+            
+            // Aktualizujeme každou kartu
+            variableCards.forEach((_, index) => {
+              const item = updatedItems[index];
+              if (item?.type === 'variable' && !item.isLocked && item.tags?.length > 0) {
                 const randomIndex = Math.floor(Math.random() * item.tags.length);
                 const newTag = item.tags[randomIndex];
-                return {
+                updatedItems[index] = {
                   ...item,
                   selectedTag: newTag,
                   value: newTag
                 };
               }
-              return item;
             });
-            onItemsChange(newItems);
             
-            setTimeout(() => {
-              const refs = document.querySelectorAll<HTMLButtonElement>('[data-random-tag-button]');
-              refs.forEach(button => button.click());
-            }, 0);
+            // Aktualizujeme stav najednou
+            onItemsChange(updatedItems);
           }}
           className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
           title="Random Tags for All"
