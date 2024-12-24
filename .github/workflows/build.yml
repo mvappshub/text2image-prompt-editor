@@ -35,64 +35,64 @@ jobs:
     - name: Create launch scripts
       run: |
         # Windows .bat script
-        cat > dist-web/spustit.bat << 'EOL'
-        @echo off
-        echo Spouštím aplikaci...
-        
-        REM Check if Python is installed
-        python --version >nul 2>&1
-        if %errorlevel% neq 0 (
-            echo Python není nainstalován. Stahuji portable verzi...
-            powershell -Command "& {Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.12.1/python-3.12.1-embed-amd64.zip' -OutFile 'python.zip'}"
-            powershell -Command "& {Expand-Archive -Path 'python.zip' -DestinationPath 'python'}"
-            del python.zip
-            set PYTHON_PATH=%~dp0python\python.exe
-        ) else (
-            set PYTHON_PATH=python
-        )
-        
-        echo Spouštím server...
-        %PYTHON_PATH% -c "import http.server,socketserver,webbrowser,os; PORT=8000; print(f'Server běží na http://localhost:{PORT}'); webbrowser.open(f'http://localhost:{PORT}'); os.chdir(os.path.dirname(os.path.abspath(__file__))); handler=http.server.SimpleHTTPRequestHandler; httpd=socketserver.TCPServer(('', PORT), handler); httpd.serve_forever()"
-        EOL
+        echo '@echo off' > dist-web/spustit.bat
+        echo 'echo Spoustim aplikaci...' >> dist-web/spustit.bat
+        echo '' >> dist-web/spustit.bat
+        echo 'REM Check if Python is installed' >> dist-web/spustit.bat
+        echo 'python --version >nul 2>&1' >> dist-web/spustit.bat
+        echo 'if %errorlevel% neq 0 (' >> dist-web/spustit.bat
+        echo '    echo Python neni nainstalovan. Stahuji portable verzi...' >> dist-web/spustit.bat
+        echo '    powershell -Command "& {Invoke-WebRequest -Uri ''https://www.python.org/ftp/python/3.12.1/python-3.12.1-embed-amd64.zip'' -OutFile ''python.zip''}"' >> dist-web/spustit.bat
+        echo '    powershell -Command "& {Expand-Archive -Path ''python.zip'' -DestinationPath ''python''}"' >> dist-web/spustit.bat
+        echo '    del python.zip' >> dist-web/spustit.bat
+        echo '    set PYTHON_PATH=%~dp0python\python.exe' >> dist-web/spustit.bat
+        echo ') else (' >> dist-web/spustit.bat
+        echo '    set PYTHON_PATH=python' >> dist-web/spustit.bat
+        echo ')' >> dist-web/spustit.bat
+        echo '' >> dist-web/spustit.bat
+        echo 'echo Spoustim server...' >> dist-web/spustit.bat
+        echo 'start "" "%PYTHON_PATH%" -c "import http.server,socketserver,webbrowser,os; PORT=8000; print(f''Server bezi na http://localhost:{PORT}''); webbrowser.open(f''http://localhost:{PORT}''); os.chdir(os.path.dirname(os.path.abspath(__file__))); handler=http.server.SimpleHTTPRequestHandler; httpd=socketserver.TCPServer((\'''', PORT), handler); httpd.serve_forever()"' >> dist-web/spustit.bat
         
         # Mac .command script
-        cat > dist-web/spustit.command << 'EOL'
-        #!/bin/bash
-        cd "$(dirname "$0")"
-        echo "Spouštím aplikaci..."
-        
-        # Check if Python is installed
-        if ! command -v python3 &> /dev/null; then
-            echo "Python není nainstalován. Otevírám stránku ke stažení..."
-            open "https://www.python.org/downloads/"
-            echo "Po instalaci Pythonu spusťte tento skript znovu."
-            exit 1
-        fi
-        
-        echo "Spouštím server..."
-        python3 -c "import http.server,socketserver,webbrowser,os; PORT=8000; print(f'Server běží na http://localhost:{PORT}'); webbrowser.open(f'http://localhost:{PORT}'); os.chdir(os.path.dirname(os.path.abspath(__file__))); handler=http.server.SimpleHTTPRequestHandler; httpd=socketserver.TCPServer(('', PORT), handler); httpd.serve_forever()"
-        EOL
+        echo '#!/bin/bash' > dist-web/spustit.command
+        echo 'cd "$(dirname "$0")"' >> dist-web/spustit.command
+        echo 'echo "Spoustim aplikaci..."' >> dist-web/spustit.command
+        echo '' >> dist-web/spustit.command
+        echo '# Check if Python is installed' >> dist-web/spustit.command
+        echo 'if ! command -v python3 &> /dev/null; then' >> dist-web/spustit.command
+        echo '    echo "Python neni nainstalovan. Oteviram stranku ke stazeni..."' >> dist-web/spustit.command
+        echo '    open "https://www.python.org/downloads/"' >> dist-web/spustit.command
+        echo '    echo "Po instalaci Pythonu spustte tento skript znovu."' >> dist-web/spustit.command
+        echo '    exit 1' >> dist-web/spustit.command
+        echo 'fi' >> dist-web/spustit.command
+        echo '' >> dist-web/spustit.command
+        echo 'echo "Spoustim server..."' >> dist-web/spustit.command
+        echo 'python3 -c "import http.server,socketserver,webbrowser,os; PORT=8000; print(f''Server bezi na http://localhost:{PORT}''); webbrowser.open(f''http://localhost:{PORT}''); os.chdir(os.path.dirname(os.path.abspath(__file__))); handler=http.server.SimpleHTTPRequestHandler; httpd=socketserver.TCPServer((\'''', PORT), handler); httpd.serve_forever()"' >> dist-web/spustit.command
         
         # Make Mac script executable
         chmod +x dist-web/spustit.command
         
+        # Convert line endings to Windows format for .bat
+        sed -i 's/$/\r/' dist-web/spustit.bat
+        
     - name: Create README
       run: |
-        cat > dist-web/README.txt << 'EOL'
-        Text2Image Prompt Editor - Web Verze
+        echo 'Text2Image Prompt Editor - Web Verze' > dist-web/README.txt
+        echo '' >> dist-web/README.txt
+        echo 'Spusteni aplikace:' >> dist-web/README.txt
+        echo '' >> dist-web/README.txt
+        echo 'Windows:' >> dist-web/README.txt
+        echo '- Dvojklik na spustit.bat' >> dist-web/README.txt
+        echo '' >> dist-web/README.txt
+        echo 'Mac:' >> dist-web/README.txt
+        echo '- Dvojklik na spustit.command' >> dist-web/README.txt
+        echo '' >> dist-web/README.txt
+        echo 'Aplikace se automaticky otevre ve vasem vychozim prohlizeci.' >> dist-web/README.txt
+        echo 'Na Windows se v pripade potreby automaticky stahne portable verze Pythonu.' >> dist-web/README.txt
+        echo 'Na Macu budete v pripade potreby presmerovani na stranku ke stazeni Pythonu.' >> dist-web/README.txt
         
-        Spuštění aplikace:
-        
-        Windows:
-        - Dvojklik na spustit.bat
-        
-        Mac:
-        - Dvojklik na spustit.command
-        
-        Aplikace se automaticky otevře ve vašem výchozím prohlížeči.
-        Na Windows se v případě potřeby automaticky stáhne portable verze Pythonu.
-        Na Macu budete v případě potřeby přesměrováni na stránku ke stažení Pythonu.
-        EOL
+        # Convert line endings to Windows format
+        sed -i 's/$/\r/' dist-web/README.txt
         
     - name: Create web archive
       run: |
@@ -121,16 +121,16 @@ jobs:
         body: |
           Web verze aplikace (web-version.zip)
           
-          Spuštění:
-          1. Stáhněte a rozbalte web-version.zip
-          2. Spusťte:
+          Spusteni:
+          1. Stahnete a rozbalte web-version.zip
+          2. Spustte:
              - Windows: dvojklik na spustit.bat
              - Mac: dvojklik na spustit.command
           
-          Aplikace se automaticky otevře ve vašem výchozím prohlížeči.
+          Aplikace se automaticky otevre ve vasem vychozim prohlizeci.
           
-          Poznámky:
-          - Na Windows se v případě potřeby automaticky stáhne portable verze Pythonu
-          - Na Macu budete v případě potřeby přesměrováni na stránku ke stažení Pythonu
+          Poznamky:
+          - Na Windows se v pripade potreby automaticky stahne portable verze Pythonu
+          - Na Macu budete v pripade potreby presmerovani na stranku ke stazeni Pythonu
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
