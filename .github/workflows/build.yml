@@ -32,7 +32,7 @@ jobs:
         npm --version
 
     - name: Install dependencies
-      run: npm ci
+      run: npm install
       
     - name: Build Windows
       run: npm run build:win
@@ -85,7 +85,7 @@ jobs:
         npm --version
 
     - name: Install dependencies
-      run: npm ci
+      run: npm install
       
     - name: Build macOS
       run: npm run build:mac
@@ -138,7 +138,7 @@ jobs:
         npm --version
 
     - name: Install dependencies
-      run: npm ci
+      run: npm install
       
     - name: Build Web
       run: npm run build:web
