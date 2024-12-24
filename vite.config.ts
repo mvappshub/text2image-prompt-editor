@@ -1,5 +1,6 @@
 import { defineConfig, Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import { viteSingleFile } from "vite-plugin-singlefile"
 import { resolve } from 'path'
 
 // https://vitejs.dev/config/
@@ -34,6 +35,7 @@ export default defineConfig(({ command, mode }) => {
     base: './',
     plugins: [
       react(),
+      viteSingleFile(),
       ...electronPlugins,
     ],
     build: {
@@ -41,12 +43,13 @@ export default defineConfig(({ command, mode }) => {
       emptyOutDir: true,
       target: 'esnext',
       minify: true,
+      assetsInlineLimit: 100000000,
       rollupOptions: {
         input: {
           main: resolve(__dirname, 'index.html'),
         },
         output: {
-          manualChunks: {
+          manualChunks: isWeb ? () => 'everything.js' : {
             react: ['react', 'react-dom'],
             lucide: ['lucide-react']
           }
