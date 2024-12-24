@@ -142,15 +142,19 @@ jobs:
       
     - name: Build Web
       run: npm run build:web
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+    - name: Create web archive
+      run: |
+        cd dist-web
+        zip -r ../web-version.zip .
+        cd ..
         
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
+    - name: Upload web artifacts
+      uses: actions/upload-artifact@v4
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./dist
-        force_orphan: true
+        name: web-version
+        path: web-version.zip
+        if-no-files-found: error
 
   create-release:
     needs: [build-windows, build-macos, build-web]
@@ -172,12 +176,19 @@ jobs:
         path: macos-artifacts
       id: download-macos
 
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: web-version
+        path: web-version
+
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
           windows-artifacts/*.exe
           macos-artifacts/*.dmg
+          web-version/web-version.zip
         name: Release ${{ github.sha }}
         tag_name: v${{ github.run_number }}
         draft: false
@@ -185,8 +196,9 @@ jobs:
         body: |
           Automated release from commit ${{ github.sha }}
           
-          Build information:
+          Available versions:
           - Windows installer (.exe)
           - macOS disk image (.dmg)
+          - Web version (web-version.zip) - Rozbalte a otevřete index.html v prohlížeči
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

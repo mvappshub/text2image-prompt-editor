@@ -11,7 +11,7 @@
     "build": "tsc && vite build && electron-builder",
     "build:win": "tsc && vite build && electron-builder --win",
     "build:mac": "tsc && vite build && electron-builder --mac",
-    "build:web": "cross-env BUILD_TARGET=web tsc && vite build",
+    "build:web": "tsc && vite build --mode web",
     "preview": "vite preview",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "deploy": "npm run build:web && gh-pages -d dist"
