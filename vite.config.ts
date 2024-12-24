@@ -9,7 +9,6 @@ export default defineConfig(({ command, mode }) => {
   const electronPlugins: Plugin[] = []
   if (!isWeb) {
     try {
-      // Dynamicky importujeme electron pluginy
       const electron = require('vite-electron-plugin').default
       const { customStart } = require('vite-electron-plugin/plugin')
       const renderer = require('vite-plugin-electron-renderer').default
@@ -43,6 +42,9 @@ export default defineConfig(({ command, mode }) => {
       target: 'esnext',
       minify: true,
       rollupOptions: {
+        input: {
+          main: resolve(__dirname, 'index.html'),
+        },
         output: {
           manualChunks: {
             react: ['react', 'react-dom'],

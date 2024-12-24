@@ -1,4 +1,4 @@
-name: Build
+name: Build Web Version
 
 on:
   push:
@@ -8,113 +8,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
-    timeout-minutes: 30
-
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18.x'
-        cache: 'npm'
-
-    - name: Check environment
-      shell: pwsh
-      run: |
-        Write-Host "Node version:"
-        node --version
-        Write-Host "NPM version:"
-        npm --version
-
-    - name: Install dependencies
-      run: npm install
-      
-    - name: Build Windows
-      run: npm run build:win
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
-    - name: Verify build artifacts
-      shell: pwsh
-      run: |
-        Write-Host "Checking release directory..."
-        if (!(Test-Path "release")) {
-          Write-Host "Error: Release directory not found!"
-          exit 1
-        }
-        Get-ChildItem release -Recurse
-        $exeFile = Get-ChildItem release -Filter *.exe | Select-Object -First 1
-        if (!$exeFile) {
-          Write-Host "Error: No .exe file found in release directory!"
-          exit 1
-        }
-        Write-Host "Found installer: $($exeFile.Name)"
-        
-    - name: Upload Windows artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: windows-build
-        path: release/*.exe
-        if-no-files-found: error
-
-  build-macos:
-    runs-on: macos-latest
-    timeout-minutes: 30
-
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18.x'
-        cache: 'npm'
-
-    - name: Check environment
-      run: |
-        echo "Node version:"
-        node --version
-        echo "NPM version:"
-        npm --version
-
-    - name: Install dependencies
-      run: npm install
-      
-    - name: Build macOS
-      run: npm run build:mac
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        CSC_IDENTITY_AUTO_DISCOVERY: false
-        
-    - name: Verify build artifacts
-      run: |
-        echo "Checking release directory..."
-        if [ ! -d "release" ]; then
-          echo "Error: Release directory not found!"
-          exit 1
-        fi
-        ls -la release
-        if [ ! -f "release/"*.dmg ]; then
-          echo "Error: No .dmg file found in release directory!"
-          exit 1
-        fi
-        echo "Found DMG file(s):"
-        ls -la release/*.dmg
-        
-    - name: Upload macOS artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: macos-build
-        path: release/*.dmg
-        if-no-files-found: error
-
   build-web:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -130,24 +23,28 @@ jobs:
         node-version: '18.x'
         cache: 'npm'
 
-    - name: Check environment
-      run: |
-        echo "Node version:"
-        node --version
-        echo "NPM version:"
-        npm --version
-
     - name: Install dependencies
       run: npm install
       
     - name: Build Web
       run: npm run build:web
       
+    - name: List build contents
+      run: |
+        echo "Web build contents:"
+        ls -la dist-web
+        echo "Assets:"
+        ls -la dist-web/assets
+        echo "Total size:"
+        du -sh dist-web
+        
     - name: Create web archive
       run: |
         cd dist-web
-        zip -r ../web-version.zip .
+        zip -r ../web-version.zip *
         cd ..
+        echo "Archive size:"
+        ls -lh web-version.zip
         
     - name: Upload web artifacts
       uses: actions/upload-artifact@v4
@@ -156,49 +53,17 @@ jobs:
         path: web-version.zip
         if-no-files-found: error
 
-  create-release:
-    needs: [build-windows, build-macos, build-web]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Download all artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: windows-build
-        path: windows-artifacts
-      id: download-windows
-      
-    - name: Download all artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: macos-build
-        path: macos-artifacts
-      id: download-macos
-
-    - name: Download all artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: web-version
-        path: web-version
-
     - name: Create Release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: softprops/action-gh-release@v1
       with:
-        files: |
-          windows-artifacts/*.exe
-          macos-artifacts/*.dmg
-          web-version/web-version.zip
-        name: Release ${{ github.sha }}
-        tag_name: v${{ github.run_number }}
+        files: web-version.zip
+        name: Web Release ${{ github.sha }}
+        tag_name: web-v${{ github.run_number }}
         draft: false
         prerelease: false
         body: |
-          Automated release from commit ${{ github.sha }}
-          
-          Available versions:
-          - Windows installer (.exe)
-          - macOS disk image (.dmg)
-          - Web version (web-version.zip) - Rozbalte a otevřete index.html v prohlížeči
+          Web verze aplikace (web-version.zip)
+          - Rozbalte a otevřete index.html v prohlížeči
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
