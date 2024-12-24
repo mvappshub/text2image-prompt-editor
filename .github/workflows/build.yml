@@ -32,6 +32,53 @@ jobs:
     - name: Build Web
       run: npm run build:web
       
+    - name: Create server script
+      run: |
+        cat > dist-web/server.py << 'EOL'
+        import http.server
+        import socketserver
+        import webbrowser
+        from pathlib import Path
+        
+        PORT = 8000
+        
+        class Handler(http.server.SimpleHTTPRequestHandler):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, directory=str(Path(__file__).parent), **kwargs)
+        
+        print(f"Starting server at http://localhost:{PORT}")
+        print("Opening browser...")
+        webbrowser.open(f"http://localhost:{PORT}")
+        
+        with socketserver.TCPServer(("", PORT), Handler) as httpd:
+            print("Server running. Press Ctrl+C to stop.")
+            try:
+                httpd.serve_forever()
+            except KeyboardInterrupt:
+                print("\nServer stopped.")
+        EOL
+        
+    - name: Create README
+      run: |
+        cat > dist-web/README.txt << 'EOL'
+        Text2Image Prompt Editor - Web Verze
+        
+        Pro spuštění aplikace máte dvě možnosti:
+        
+        1. Pomocí Python serveru (doporučeno):
+           - Nainstalujte Python 3 z python.org
+           - Spusťte server.py dvojklikem nebo příkazem: python server.py
+           - Prohlížeč se automaticky otevře na http://localhost:8000
+           
+        2. Pomocí VS Code:
+           - Otevřete složku ve VS Code
+           - Nainstalujte rozšíření "Live Server"
+           - Klikněte pravým na index.html a vyberte "Open with Live Server"
+        
+        Poznámka: Přímé otevření index.html v prohlížeči nebude fungovat kvůli
+        bezpečnostním omezením prohlížečů. Musíte použít jednu z výše uvedených metod.
+        EOL
+        
     - name: List build contents
       run: |
         echo "Web build contents:"
@@ -67,6 +114,22 @@ jobs:
         prerelease: false
         body: |
           Web verze aplikace (web-version.zip)
-          - Rozbalte a otevřete index.html v prohlížeči
+          
+          Instalace:
+          1. Stáhněte a rozbalte web-version.zip
+          2. Pro spuštění máte dvě možnosti:
+             
+             a) Pomocí Python serveru (doporučeno):
+             - Nainstalujte Python 3 z python.org
+             - Spusťte server.py dvojklikem nebo příkazem: python server.py
+             - Prohlížeč se automaticky otevře na http://localhost:8000
+             
+             b) Pomocí VS Code:
+             - Otevřete složku ve VS Code
+             - Nainstalujte rozšíření "Live Server"
+             - Klikněte pravým na index.html a vyberte "Open with Live Server"
+          
+          Poznámka: Přímé otevření index.html v prohlížeči nebude fungovat kvůli
+          bezpečnostním omezením prohlížečů. Musíte použít jednu z výše uvedených metod.
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
