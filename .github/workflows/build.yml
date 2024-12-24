@@ -32,51 +32,66 @@ jobs:
     - name: Build Web
       run: npm run build:web
       
-    - name: Create server script
+    - name: Create launch scripts
       run: |
-        cat > dist-web/server.py << 'EOL'
-        import http.server
-        import socketserver
-        import webbrowser
-        from pathlib import Path
+        # Windows .bat script
+        cat > dist-web/spustit.bat << 'EOL'
+        @echo off
+        echo Spouštím aplikaci...
         
-        PORT = 8000
+        REM Check if Python is installed
+        python --version >nul 2>&1
+        if %errorlevel% neq 0 (
+            echo Python není nainstalován. Stahuji portable verzi...
+            powershell -Command "& {Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.12.1/python-3.12.1-embed-amd64.zip' -OutFile 'python.zip'}"
+            powershell -Command "& {Expand-Archive -Path 'python.zip' -DestinationPath 'python'}"
+            del python.zip
+            set PYTHON_PATH=%~dp0python\python.exe
+        ) else (
+            set PYTHON_PATH=python
+        )
         
-        class Handler(http.server.SimpleHTTPRequestHandler):
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, directory=str(Path(__file__).parent), **kwargs)
-        
-        print(f"Starting server at http://localhost:{PORT}")
-        print("Opening browser...")
-        webbrowser.open(f"http://localhost:{PORT}")
-        
-        with socketserver.TCPServer(("", PORT), Handler) as httpd:
-            print("Server running. Press Ctrl+C to stop.")
-            try:
-                httpd.serve_forever()
-            except KeyboardInterrupt:
-                print("\nServer stopped.")
+        echo Spouštím server...
+        %PYTHON_PATH% -c "import http.server,socketserver,webbrowser,os; PORT=8000; print(f'Server běží na http://localhost:{PORT}'); webbrowser.open(f'http://localhost:{PORT}'); os.chdir(os.path.dirname(os.path.abspath(__file__))); handler=http.server.SimpleHTTPRequestHandler; httpd=socketserver.TCPServer(('', PORT), handler); httpd.serve_forever()"
         EOL
+        
+        # Mac .command script
+        cat > dist-web/spustit.command << 'EOL'
+        #!/bin/bash
+        cd "$(dirname "$0")"
+        echo "Spouštím aplikaci..."
+        
+        # Check if Python is installed
+        if ! command -v python3 &> /dev/null; then
+            echo "Python není nainstalován. Otevírám stránku ke stažení..."
+            open "https://www.python.org/downloads/"
+            echo "Po instalaci Pythonu spusťte tento skript znovu."
+            exit 1
+        fi
+        
+        echo "Spouštím server..."
+        python3 -c "import http.server,socketserver,webbrowser,os; PORT=8000; print(f'Server běží na http://localhost:{PORT}'); webbrowser.open(f'http://localhost:{PORT}'); os.chdir(os.path.dirname(os.path.abspath(__file__))); handler=http.server.SimpleHTTPRequestHandler; httpd=socketserver.TCPServer(('', PORT), handler); httpd.serve_forever()"
+        EOL
+        
+        # Make Mac script executable
+        chmod +x dist-web/spustit.command
         
     - name: Create README
       run: |
         cat > dist-web/README.txt << 'EOL'
         Text2Image Prompt Editor - Web Verze
         
-        Pro spuštění aplikace máte dvě možnosti:
+        Spuštění aplikace:
         
-        1. Pomocí Python serveru (doporučeno):
-           - Nainstalujte Python 3 z python.org
-           - Spusťte server.py dvojklikem nebo příkazem: python server.py
-           - Prohlížeč se automaticky otevře na http://localhost:8000
-           
-        2. Pomocí VS Code:
-           - Otevřete složku ve VS Code
-           - Nainstalujte rozšíření "Live Server"
-           - Klikněte pravým na index.html a vyberte "Open with Live Server"
+        Windows:
+        - Dvojklik na spustit.bat
         
-        Poznámka: Přímé otevření index.html v prohlížeči nebude fungovat kvůli
-        bezpečnostním omezením prohlížečů. Musíte použít jednu z výše uvedených metod.
+        Mac:
+        - Dvojklik na spustit.command
+        
+        Aplikace se automaticky otevře ve vašem výchozím prohlížeči.
+        Na Windows se v případě potřeby automaticky stáhne portable verze Pythonu.
+        Na Macu budete v případě potřeby přesměrováni na stránku ke stažení Pythonu.
         EOL
         
     - name: List build contents
@@ -115,21 +130,16 @@ jobs:
         body: |
           Web verze aplikace (web-version.zip)
           
-          Instalace:
+          Spuštění:
           1. Stáhněte a rozbalte web-version.zip
-          2. Pro spuštění máte dvě možnosti:
-             
-             a) Pomocí Python serveru (doporučeno):
-             - Nainstalujte Python 3 z python.org
-             - Spusťte server.py dvojklikem nebo příkazem: python server.py
-             - Prohlížeč se automaticky otevře na http://localhost:8000
-             
-             b) Pomocí VS Code:
-             - Otevřete složku ve VS Code
-             - Nainstalujte rozšíření "Live Server"
-             - Klikněte pravým na index.html a vyberte "Open with Live Server"
+          2. Spusťte:
+             - Windows: dvojklik na spustit.bat
+             - Mac: dvojklik na spustit.command
           
-          Poznámka: Přímé otevření index.html v prohlížeči nebude fungovat kvůli
-          bezpečnostním omezením prohlížečů. Musíte použít jednu z výše uvedených metod.
+          Aplikace se automaticky otevře ve vašem výchozím prohlížeči.
+          
+          Poznámky:
+          - Na Windows se v případě potřeby automaticky stáhne portable verze Pythonu
+          - Na Macu budete v případě potřeby přesměrováni na stránku ke stažení Pythonu
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
