@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "A powerful editor for creating and managing Text2Image prompts",
   "author": "Martin Vosáhlo",
-  "type": "commonjs",
+  "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -27,8 +27,8 @@
     "@types/react-dom": "^18.2.7",
     "@typescript-eslint/eslint-plugin": "^8.18.1",
     "@typescript-eslint/parser": "^8.18.1",
-    "@vitejs/plugin-react": "^4.0.3",
-    "autoprefixer": "^10.4.16",
+    "@vitejs/plugin-react": "latest",
+    "autoprefixer": "^10.4.20",
     "cross-env": "^7.0.3",
     "electron": "^28.1.0",
     "electron-builder": "^24.6.4",
@@ -37,12 +37,13 @@
     "eslint-plugin-react-refresh": "^0.4.3",
     "gh-pages": "^6.1.1",
     "globals": "^15.9.0",
-    "postcss": "^8.4.31",
-    "tailwindcss": "^3.3.5",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
     "typescript": "^5.0.2",
-    "vite": "^5.1.4",
+    "vite": "latest",
     "vite-electron-plugin": "^0.8.2",
-    "vite-plugin-electron-renderer": "^0.14.5"
+    "vite-plugin-electron-renderer": "^0.14.5",
+    "vite-plugin-singlefile": "latest"
   },
   "build": {
     "appId": "com.martinvosahlo.text2image-prompt-editor",
@@ -60,18 +61,24 @@
       {
         "from": "build",
         "to": ".",
-        "filter": ["icons/*"]
+        "filter": [
+          "icons/*"
+        ]
       }
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "build/icon.ico"
@@ -80,7 +87,10 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "icon": "build/icon.icns",

@@ -3,16 +3,15 @@ import react from '@vitejs/plugin-react'
 import { viteSingleFile } from "vite-plugin-singlefile"
 import { resolve } from 'path'
 
-// https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
   const isWeb = mode === 'web'
   
   const electronPlugins: Plugin[] = []
   if (!isWeb) {
     try {
-      const electron = require('vite-electron-plugin').default
+      const electron = require('vite-electron-plugin')
       const { customStart } = require('vite-electron-plugin/plugin')
-      const renderer = require('vite-plugin-electron-renderer').default
+      const renderer = require('vite-plugin-electron-renderer')
       
       electronPlugins.push(
         electron({
@@ -44,17 +43,24 @@ export default defineConfig(({ command, mode }) => {
       target: 'esnext',
       minify: true,
       assetsInlineLimit: 100000000,
+      cssCodeSplit: false,
       rollupOptions: {
         input: {
           main: resolve(__dirname, 'index.html'),
         },
-        output: {
-          manualChunks: isWeb ? () => 'everything.js' : {
+        output: isWeb ? {
+          format: 'es',
+          inlineDynamicImports: true
+        } : {
+          manualChunks: {
             react: ['react', 'react-dom'],
             lucide: ['lucide-react']
           }
         }
       }
+    },
+    css: {
+      postcss: './postcss.config.js'
     },
     resolve: {
       alias: {
