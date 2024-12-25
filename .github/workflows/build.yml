@@ -29,6 +29,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Create Git tag
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git tag v1.0.1
+          git push origin v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build for macOS
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -50,6 +58,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: release-macos.zip
+          tag_name: v1.0.1
           body: |
             Zde je aktuální build aplikace pro macOS:
             - **macOS**: release-macos.zip
