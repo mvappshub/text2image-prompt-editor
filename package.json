@@ -81,7 +81,7 @@
           ]
         }
       ],
-      "icon": "build/icon.icns",
+      "icon": "public/icon.icns",
       "category": "public.app-category.graphics-design",
       "artifactName": "${productName}-${version}-${arch}.${ext}",
       "hardenedRuntime": true,
