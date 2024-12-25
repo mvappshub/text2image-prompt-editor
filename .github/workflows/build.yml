@@ -50,19 +50,37 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build:mac
 
-      - name: Archive macOS Build
+      - name: Prepare Release Assets
         run: |
-          zip -r release-macos.zip release/*.dmg
-          echo "macOS build archived"
+          mkdir -p release_artifacts
+          cp release/*.dmg release_artifacts/
+          cd release_artifacts
+          zip -r ../release-macos.zip ./*
+          cd ..
+          ls -la release-macos.zip
 
-      - name: Upload macOS Build Artifact
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-build
           path: release-macos.zip
+          retention-days: 1
 
       - name: Create GitHub Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release-macos.zip
+          tag_name: v1.0.3
+          body: |
+            Zde je aktuální build aplikace pro macOS:
+            - **macOS**: release-macos.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Retry Release Upload
+        if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v1
         with:
           files: release-macos.zip
