@@ -30,6 +30,8 @@ jobs:
         run: npm install
 
       - name: Build for macOS
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build:mac
 
       - name: Archive macOS Build
@@ -52,4 +54,4 @@ jobs:
             Zde je aktuální build aplikace pro macOS:
             - **macOS**: release-macos.zip
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
