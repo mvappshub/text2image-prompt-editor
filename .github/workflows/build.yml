@@ -1,83 +1,55 @@
-name: Build Web and macOS Versions
+name: Build macOS Application
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
-  build-web:
-    runs-on: ubuntu-latest
+  build-macos:
+    runs-on: macos-latest
     timeout-minutes: 30
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18.x'
-        cache: 'npm'
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Install dependencies
-      run: npm install
-      
-    - name: Build Web
-      run: npm run build:web
-      
-    - name: Create web archive
-      run: |
-        cd dist-web
-        zip -r ../web-version.zip *
-        cd ..
-        echo "Archive size:"
-        ls -lh web-version.zip
-        
-    - name: Upload web artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: web-version
-        path: web-version.zip
-        if-no-files-found: error
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
 
-  build-mac:
-    runs-on: macos-latest
-    timeout-minutes: 60
+      - name: Install dependencies
+        run: npm install
 
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Build for macOS
+        run: npm run build:mac
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18.x'
-        cache: 'npm'
+      - name: Archive macOS Build
+        run: |
+          zip -r release-macos.zip release/*.dmg
+          echo "macOS build archived"
 
-    - name: Install dependencies
-      run: npm install
-      
-    - name: Build macOS App
-      run: npm run build:mac
-      
-    - name: Create macOS artifacts
-      run: |
-        mkdir -p release
-        zip -r release/mac-version.zip release/*.dmg
-        echo "macOS build artifact created:"
-        ls -lh release/
+      - name: Upload macOS Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: release-macos.zip
 
-    - name: Upload macOS artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: mac-version
-        path: release/mac-version.zip
-        if-no-files-found: error
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release-macos.zip
+          body: |
+            Zde je aktuální build aplikace pro macOS:
+            - **macOS**: release-macos.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
