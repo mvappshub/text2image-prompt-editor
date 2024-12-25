@@ -1,4 +1,4 @@
-name: Build Web Version
+name: Build Web and macOS Versions
 
 on:
   push:
@@ -32,68 +32,6 @@ jobs:
     - name: Build Web
       run: npm run build:web
       
-    - name: Create launch scripts
-      run: |
-        # Windows .bat script
-        echo '@echo off' > dist-web/spustit.bat
-        echo 'echo Spoustim aplikaci...' >> dist-web/spustit.bat
-        echo '' >> dist-web/spustit.bat
-        echo 'REM Check if Python is installed' >> dist-web/spustit.bat
-        echo 'python --version >nul 2>&1' >> dist-web/spustit.bat
-        echo 'if %errorlevel% neq 0 (' >> dist-web/spustit.bat
-        echo '    echo Python neni nainstalovan. Stahuji portable verzi...' >> dist-web/spustit.bat
-        echo '    powershell -Command "& {Invoke-WebRequest -Uri ''https://www.python.org/ftp/python/3.12.1/python-3.12.1-embed-amd64.zip'' -OutFile ''python.zip''}"' >> dist-web/spustit.bat
-        echo '    powershell -Command "& {Expand-Archive -Path ''python.zip'' -DestinationPath ''python''}"' >> dist-web/spustit.bat
-        echo '    del python.zip' >> dist-web/spustit.bat
-        echo '    set PYTHON_PATH=%~dp0python\python.exe' >> dist-web/spustit.bat
-        echo ') else (' >> dist-web/spustit.bat
-        echo '    set PYTHON_PATH=python' >> dist-web/spustit.bat
-        echo ')' >> dist-web/spustit.bat
-        echo '' >> dist-web/spustit.bat
-        echo 'echo Spoustim server...' >> dist-web/spustit.bat
-        echo 'start "" "%PYTHON_PATH%" -c "import http.server,socketserver,webbrowser,os; PORT=8000; print(f''Server bezi na http://localhost:{PORT}''); webbrowser.open(f''http://localhost:{PORT}''); os.chdir(os.path.dirname(os.path.abspath(__file__))); handler=http.server.SimpleHTTPRequestHandler; httpd=socketserver.TCPServer((\'''', PORT), handler); httpd.serve_forever()"' >> dist-web/spustit.bat
-        
-        # Mac .command script
-        echo '#!/bin/bash' > dist-web/spustit.command
-        echo 'cd "$(dirname "$0")"' >> dist-web/spustit.command
-        echo 'echo "Spoustim aplikaci..."' >> dist-web/spustit.command
-        echo '' >> dist-web/spustit.command
-        echo '# Check if Python is installed' >> dist-web/spustit.command
-        echo 'if ! command -v python3 &> /dev/null; then' >> dist-web/spustit.command
-        echo '    echo "Python neni nainstalovan. Oteviram stranku ke stazeni..."' >> dist-web/spustit.command
-        echo '    open "https://www.python.org/downloads/"' >> dist-web/spustit.command
-        echo '    echo "Po instalaci Pythonu spustte tento skript znovu."' >> dist-web/spustit.command
-        echo '    exit 1' >> dist-web/spustit.command
-        echo 'fi' >> dist-web/spustit.command
-        echo '' >> dist-web/spustit.command
-        echo 'echo "Spoustim server..."' >> dist-web/spustit.command
-        echo 'python3 -c "import http.server,socketserver,webbrowser,os; PORT=8000; print(f''Server bezi na http://localhost:{PORT}''); webbrowser.open(f''http://localhost:{PORT}''); os.chdir(os.path.dirname(os.path.abspath(__file__))); handler=http.server.SimpleHTTPRequestHandler; httpd=socketserver.TCPServer((\'''', PORT), handler); httpd.serve_forever()"' >> dist-web/spustit.command
-        
-        # Make Mac script executable
-        chmod +x dist-web/spustit.command
-        
-        # Convert line endings to Windows format for .bat
-        sed -i 's/$/\r/' dist-web/spustit.bat
-        
-    - name: Create README
-      run: |
-        echo 'Text2Image Prompt Editor - Web Verze' > dist-web/README.txt
-        echo '' >> dist-web/README.txt
-        echo 'Spusteni aplikace:' >> dist-web/README.txt
-        echo '' >> dist-web/README.txt
-        echo 'Windows:' >> dist-web/README.txt
-        echo '- Dvojklik na spustit.bat' >> dist-web/README.txt
-        echo '' >> dist-web/README.txt
-        echo 'Mac:' >> dist-web/README.txt
-        echo '- Dvojklik na spustit.command' >> dist-web/README.txt
-        echo '' >> dist-web/README.txt
-        echo 'Aplikace se automaticky otevre ve vasem vychozim prohlizeci.' >> dist-web/README.txt
-        echo 'Na Windows se v pripade potreby automaticky stahne portable verze Pythonu.' >> dist-web/README.txt
-        echo 'Na Macu budete v pripade potreby presmerovani na stranku ke stazeni Pythonu.' >> dist-web/README.txt
-        
-        # Convert line endings to Windows format
-        sed -i 's/$/\r/' dist-web/README.txt
-        
     - name: Create web archive
       run: |
         cd dist-web
@@ -109,28 +47,37 @@ jobs:
         path: web-version.zip
         if-no-files-found: error
 
-    - name: Create Release
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      uses: softprops/action-gh-release@v1
+  build-mac:
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+    - uses: actions/checkout@v4
       with:
-        files: web-version.zip
-        name: Web Release ${{ github.sha }}
-        tag_name: web-v${{ github.run_number }}
-        draft: false
-        prerelease: false
-        body: |
-          Web verze aplikace (web-version.zip)
-          
-          Spusteni:
-          1. Stahnete a rozbalte web-version.zip
-          2. Spustte:
-             - Windows: dvojklik na spustit.bat
-             - Mac: dvojklik na spustit.command
-          
-          Aplikace se automaticky otevre ve vasem vychozim prohlizeci.
-          
-          Poznamky:
-          - Na Windows se v pripade potreby automaticky stahne portable verze Pythonu
-          - Na Macu budete v pripade potreby presmerovani na stranku ke stazeni Pythonu
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm install
+      
+    - name: Build macOS App
+      run: npm run build:mac
+      
+    - name: Create macOS artifacts
+      run: |
+        mkdir -p release
+        zip -r release/mac-version.zip release/*.dmg
+        echo "macOS build artifact created:"
+        ls -lh release/
+
+    - name: Upload macOS artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: mac-version
+        path: release/mac-version.zip
+        if-no-files-found: error
