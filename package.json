@@ -1,7 +1,7 @@
 {
   "name": "text2image-prompt-editor",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A powerful editor for creating and managing Text2Image prompts",
   "author": "Martin Vosáhlo",
   "type": "commonjs",
