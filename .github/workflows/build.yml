@@ -40,8 +40,8 @@ jobs:
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          git tag v1.0.1
-          git push origin v1.0.1
+          git tag v1.0.2
+          git push origin v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -66,7 +66,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: release-macos.zip
-          tag_name: v1.0.1
+          tag_name: v1.0.2
           body: |
             Zde je aktuální build aplikace pro macOS:
             - **macOS**: release-macos.zip
