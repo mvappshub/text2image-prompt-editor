@@ -1,0 +1,3 @@
+@echo off
+echo Spoustim aplikaci...
+start "" index.html

@@ -1,26 +1,164 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Text2Image Prompt Editor</title>
+    <style>
+        /* Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        
+        /* Layout */
+        .flex {
+            display: flex;
+        }
+        
+        .flex-1 {
+            flex: 1;
+        }
+        
+        .h-screen {
+            height: 100vh;
+        }
+        
+        .w-1\/4 {
+            width: 25%;
+        }
+        
+        .w-full {
+            width: 100%;
+        }
+        
+        .h-32 {
+            height: 8rem;
+        }
+        
+        /* Spacing */
+        .p-4 {
+            padding: 1rem;
+        }
+        
+        .p-2 {
+            padding: 0.5rem;
+        }
+        
+        .px-4 {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        
+        .py-2 {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+        
+        .mt-4 {
+            margin-top: 1rem;
+        }
+        
+        .mt-2 {
+            margin-top: 0.5rem;
+        }
+        
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+        
+        /* Colors */
+        .bg-white {
+            background-color: white;
+        }
+        
+        .bg-gray-100 {
+            background-color: #f3f4f6;
+        }
+        
+        .bg-blue-500 {
+            background-color: #3b82f6;
+        }
+        
+        .text-white {
+            color: white;
+        }
+        
+        /* Typography */
+        .text-2xl {
+            font-size: 1.5rem;
+        }
+        
+        .text-xl {
+            font-size: 1.25rem;
+        }
+        
+        .font-bold {
+            font-weight: bold;
+        }
+        
+        /* Effects */
+        .rounded {
+            border-radius: 0.25rem;
+        }
+        
+        .rounded-lg {
+            border-radius: 0.5rem;
+        }
+        
+        .shadow {
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1);
+        }
+        
+        .shadow-lg {
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+        
+        .border {
+            border: 1px solid #e5e7eb;
+        }
+        
+        /* Interactive */
+        button {
+            cursor: pointer;
+            border: none;
+            outline: none;
+        }
+        
+        button.bg-blue-500:hover {
+            background-color: #2563eb;
+        }
+        
+        textarea {
+            resize: vertical;
+            font-family: inherit;
+            outline: none;
+        }
+        
+        input {
+            font-family: inherit;
+            outline: none;
+        }
+    </style>
     <script>
-        // Inline all JavaScript here to avoid CORS issues
         window.addEventListener('DOMContentLoaded', () => {
-            // Your app logic here
             const app = document.getElementById('app');
+            if (!app) return;
+            
             app.innerHTML = `
                 <div class="flex h-screen bg-gray-100">
-                    <!-- Sidebar -->
-                    <div class="w-1/4 bg-white p-4 shadow-lg">
+                    <div class="w-1\/4 bg-white p-4 shadow-lg">
                         <h1 class="text-2xl font-bold mb-4">Variables</h1>
                         <div id="variables"></div>
                         <button onclick="addVariable()" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
                             Add Variable
                         </button>
                     </div>
-                    
-                    <!-- Main content -->
                     <div class="flex-1 p-4">
                         <div class="bg-white p-4 rounded-lg shadow">
                             <h2 class="text-xl font-bold mb-4">Output</h2>
@@ -30,25 +168,26 @@
                 </div>
             `;
             
-            // Add basic functionality
             window.variables = [];
             
             window.addVariable = () => {
                 const name = prompt('Enter variable name:');
                 if (name) {
-                    variables.push({ name, value: '' });
+                    window.variables.push({ name, value: '' });
                     updateUI();
                 }
             };
             
             window.updateVariable = (index, value) => {
-                variables[index].value = value;
+                window.variables[index].value = value;
                 updateOutput();
             };
             
             window.updateUI = () => {
                 const container = document.getElementById('variables');
-                container.innerHTML = variables.map((v, i) => `
+                if (!container) return;
+                
+                container.innerHTML = window.variables.map((v, i) => `
                     <div class="mb-4 p-4 border rounded">
                         <div class="font-bold">${v.name}</div>
                         <input 
@@ -63,64 +202,18 @@
             };
             
             window.updateOutput = () => {
-                const output = variables
+                const output = document.getElementById('output');
+                if (!output) return;
+                
+                output.value = window.variables
                     .filter(v => v.value)
                     .map(v => `${v.name}: ${v.value}`)
                     .join('\n');
-                document.getElementById('output').value = output;
             };
         });
     </script>
-    <style>
-        /* Tailwind-like utility classes */
-        .flex { display: flex; }
-        .flex-1 { flex: 1; }
-        .h-screen { height: 100vh; }
-        .w-1/4 { width: 25%; }
-        .w-full { width: 100%; }
-        .h-32 { height: 8rem; }
-        .p-4 { padding: 1rem; }
-        .p-2 { padding: 0.5rem; }
-        .px-4 { padding-left: 1rem; padding-right: 1rem; }
-        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-        .mt-4 { margin-top: 1rem; }
-        .mt-2 { margin-top: 0.5rem; }
-        .mb-4 { margin-bottom: 1rem; }
-        .bg-white { background-color: white; }
-        .bg-gray-100 { background-color: #f3f4f6; }
-        .bg-blue-500 { background-color: #3b82f6; }
-        .text-white { color: white; }
-        .text-2xl { font-size: 1.5rem; }
-        .text-xl { font-size: 1.25rem; }
-        .font-bold { font-weight: bold; }
-        .rounded { border-radius: 0.25rem; }
-        .rounded-lg { border-radius: 0.5rem; }
-        .shadow { box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1); }
-        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-        .border { border: 1px solid #e5e7eb; }
-        
-        /* Reset */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .flex { flex-direction: column; }
-            .w-1/4 { width: 100%; }
-        }
-        
-        /* Improve button hover */
-        button:hover { opacity: 0.9; cursor: pointer; }
-        
-        /* Improve input focus */
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-        }
-    </style>
 </head>
-<body class="bg-gray-100">
+<body>
     <div id="app"></div>
 </body>
 </html>

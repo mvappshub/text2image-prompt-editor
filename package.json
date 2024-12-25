@@ -4,16 +4,17 @@
   "version": "1.0.0",
   "description": "A powerful editor for creating and managing Text2Image prompts",
   "author": "Martin Vosáhlo",
-  "type": "module",
+  "type": "commonjs",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && electron-builder",
-    "build:win": "tsc && vite build && electron-builder --win",
-    "build:mac": "tsc && vite build && electron-builder --mac",
+    "build": "tsc && vite build && cd electron && tsc && cd .. && electron-builder",
+    "build:win": "tsc && vite build && cd electron && tsc && cd .. && electron-builder --win",
+    "build:mac": "tsc && vite build && cd electron && tsc && cd .. && electron-builder --mac",
     "build:web": "tsc && vite build --mode web",
     "preview": "vite preview",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "test": "vitest",
     "deploy": "npm run build:web && gh-pages -d dist"
   },
   "dependencies": {
@@ -50,38 +51,25 @@
     "productName": "Text2Image Prompt Editor",
     "asar": true,
     "directories": {
-      "output": "release",
-      "buildResources": "build"
+      "output": "release"
     },
     "files": [
-      "dist/**/*",
-      "dist-electron/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "build",
-        "to": ".",
-        "filter": [
-          "icons/*"
-        ]
-      }
+      "dist-electron/**/*",
+      "dist-web/**/*",
+      "package.json"
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         },
         {
           "target": "portable",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ],
-      "icon": "build/icon.ico"
+      "icon": "public/icon.ico"
     },
     "mac": {
       "target": [

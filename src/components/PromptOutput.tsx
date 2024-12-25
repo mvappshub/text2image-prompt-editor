@@ -1,4 +1,5 @@
 import { Copy, Save, Download, X } from 'lucide-react';
+import { useState } from 'react';
 
 interface PromptOutputProps {
   items: ({ value: string; separator?: string } | { selectedTag?: string; separator?: string })[];
@@ -17,6 +18,8 @@ export function PromptOutput({
   onDeletePrompt,
   showHistory = false
 }: PromptOutputProps) {
+  const [copied, setCopied] = useState(false);
+
   const generatePrompt = () => {
     return items
       .map((item) => {
@@ -34,6 +37,8 @@ export function PromptOutput({
 
   const handleCopy = () => {
     navigator.clipboard.writeText(generatePrompt());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   };
 
   const currentPrompt = generatePrompt();
@@ -85,18 +90,40 @@ export function PromptOutput({
           >
             <Save size={20} />
           </button>
-          <button
-            onClick={handleCopy}
-            className="p-2 text-gray-600 hover:bg-yellow-200 rounded"
-            title="Copy to clipboard"
-          >
-            <Copy size={20} />
-          </button>
+          <div className="relative">
+            <button
+              onClick={handleCopy}
+              className="p-2 text-gray-600 hover:bg-yellow-200 active:bg-yellow-300 rounded transition-transform active:scale-95"
+              title="Copy to clipboard"
+            >
+              <Copy size={20} />
+            </button>
+            {copied && (
+              <span 
+                className="absolute top-full left-1/2 -translate-x-1/2 mt-1 text-base text-gray-500 bg-gray-100 bg-opacity-75 rounded px-2 py-1"
+                style={{
+                  animation: 'fadeInOut 1500ms ease-in-out'
+                }}
+              >
+                Copied
+              </span>
+            )}
+          </div>
         </div>
       </div>
       <div className="p-3 bg-white rounded min-h-[60px] whitespace-pre-wrap">
         {currentPrompt || 'Add variables and connectors to generate your prompt'}
       </div>
+      <style>
+        {`
+          @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -2px); }
+            15% { opacity: 1; transform: translate(-50%, 0); }
+            85% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -2px); }
+          }
+        `}
+      </style>
     </div>
   );
 }

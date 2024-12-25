@@ -1,44 +1,46 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Dices, LockKeyhole, X, List, BookmarkPlus } from 'lucide-react';
+import { Dices, LockKeyhole, X, List, BookmarkPlus, ChevronUp, ChevronDown, Plus, Minus } from 'lucide-react';
 
 interface VariableCardProps {
   variable: any;
-  index: number;
   onUpdate: (variable: any) => void;
   onRemove: () => void;
-  onDragStart?: (e: React.DragEvent<HTMLDivElement>, index: number) => void;
   onAddToSidebar?: () => void;
 }
 
 export function VariableCard({
   variable,
-  index,
   onUpdate,
   onRemove,
-  onDragStart,
   onAddToSidebar,
 }: VariableCardProps) {
   const [selectedTag, setSelectedTag] = useState(variable.selectedTag || '');
   const [separator, setSeparator] = useState(variable.separator || ',');
   const [isLocked, setIsLocked] = useState(variable.isLocked || false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [weight, setWeight] = useState(variable.weight || 1.0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Synchronizujeme lokální stav s props
   useEffect(() => {
     setSelectedTag(variable.selectedTag || '');
-  }, [variable.selectedTag]);
+    setWeight(variable.weight || 1.0);
+  }, [variable.selectedTag, variable.weight]);
 
-  // Aktualizujeme hlavní stav při změně lokálního stavu
+  const formatTag = (tag: string, tagWeight: number) => {
+    return tagWeight !== 1.0 ? `(${tag}:${tagWeight.toFixed(2)})` : tag;
+  };
+
   useEffect(() => {
+    const formattedTag = selectedTag ? formatTag(selectedTag, weight) : (variable.tags[0] || '');
     onUpdate({
       ...variable,
       selectedTag,
       separator,
       isLocked,
-      value: selectedTag || variable.tags[0] || ''
+      weight,
+      value: formattedTag
     });
-  }, [selectedTag, separator, isLocked]);
+  }, [selectedTag, separator, isLocked, weight]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -57,16 +59,33 @@ export function VariableCard({
       const randomIndex = Math.floor(Math.random() * availableTags.length);
       const newTag = availableTags[randomIndex];
       setSelectedTag(newTag);
+      setWeight(1.0);
     }
   };
 
   const handleTagInput = (value: string) => {
     if (!isLocked) {
       setSelectedTag(value);
-      // If the value matches a tag exactly, keep it in the tags list
-      if (!variable.tags.includes(value)) {
-        variable.tags = [...variable.tags, value];
+      if (value.endsWith('\n')) {
+        const newTag = value.trim();
+        if (newTag && !variable.tags.includes(newTag)) {
+          variable.tags = [...variable.tags, newTag];
+        }
+        setSelectedTag('');
+        setWeight(1.0);
       }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !isLocked) {
+      e.preventDefault();
+      const newTag = selectedTag.trim();
+      if (newTag && !variable.tags.includes(newTag)) {
+        variable.tags = [...variable.tags, newTag];
+      }
+      setSelectedTag('');
+      setWeight(1.0);
     }
   };
 
@@ -83,17 +102,68 @@ export function VariableCard({
     }
   };
 
+  const handlePreviousTag = () => {
+    if (isLocked) return;
+    const currentIndex = variable.tags.indexOf(selectedTag);
+    if (currentIndex > 0) {
+      setSelectedTag(variable.tags[currentIndex - 1]);
+    } else if (currentIndex === -1 && variable.tags.length > 0) {
+      setSelectedTag(variable.tags[variable.tags.length - 1]);
+    } else if (variable.tags.length > 0) {
+      setSelectedTag(variable.tags[variable.tags.length - 1]);
+    }
+    setWeight(1.0);
+  };
+
+  const handleNextTag = () => {
+    if (isLocked) return;
+    const currentIndex = variable.tags.indexOf(selectedTag);
+    if (currentIndex < variable.tags.length - 1) {
+      setSelectedTag(variable.tags[currentIndex + 1]);
+    } else if (currentIndex === -1 && variable.tags.length > 0) {
+      setSelectedTag(variable.tags[0]);
+    } else if (variable.tags.length > 0) {
+      setSelectedTag(variable.tags[0]);
+    }
+    setWeight(1.0);
+  };
+
+  const increaseWeight = () => {
+    if (!isLocked && selectedTag) {
+      setWeight((prev: number) => prev + 0.05);
+    }
+  };
+
+  const decreaseWeight = () => {
+    if (!isLocked && selectedTag) {
+      setWeight((prev: number) => Math.max(0.55, prev - 0.05));
+    }
+  };
+
   return (
     <div
-      draggable
-      onDragStart={(e) => onDragStart?.(e, index)}
       className="group relative flex flex-col gap-2 p-4 bg-white border rounded-lg shadow-sm"
       data-variable-card
     >
-      {/* Header */}
       <div className="flex items-center gap-2">
         <h3 className="flex-1 text-sm font-medium text-gray-900">{variable.name}</h3>
         <div className="flex items-center gap-1">
+          <button
+            onClick={decreaseWeight}
+            disabled={isLocked || !selectedTag}
+            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50"
+            title="Decrease weight"
+          >
+            <Minus size={16} />
+          </button>
+          <button
+            onClick={increaseWeight}
+            disabled={isLocked || !selectedTag}
+            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50"
+            title="Increase weight"
+          >
+            <Plus size={16} />
+          </button>
           <button
             onClick={handleRandomTag}
             className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
@@ -125,18 +195,39 @@ export function VariableCard({
         </div>
       </div>
 
-      {/* Tag input */}
       <div className="flex flex-col gap-2" ref={dropdownRef}>
         <div className="relative">
           <div className="flex gap-2">
-            <input
-              type="text"
-              value={selectedTag}
-              onChange={(e) => handleTagInput(e.target.value)}
-              disabled={isLocked}
-              className="flex-grow px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="Enter or select a tag"
-            />
+            <div className="flex-grow flex items-center gap-2">
+              <input
+                type="text"
+                value={selectedTag}
+                onChange={(e) => handleTagInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isLocked}
+                className="flex-grow px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Enter or select a tag"
+              />
+              {selectedTag && weight !== 1.0 && (
+                <div className="text-sm text-gray-500 min-w-[3rem]">
+                  {weight.toFixed(2)}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handlePreviousTag}
+              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+              title="Previous tag"
+            >
+              <ChevronUp size={16} />
+            </button>
+            <button
+              onClick={handleNextTag}
+              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+              title="Next tag"
+            >
+              <ChevronDown size={16} />
+            </button>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
@@ -168,6 +259,7 @@ export function VariableCard({
                     key={tag}
                     onClick={() => {
                       setSelectedTag(tag);
+                      setWeight(1.0);
                       setIsDropdownOpen(false);
                     }}
                     className="w-full px-2 py-1 text-sm text-left text-gray-700 hover:bg-gray-100"

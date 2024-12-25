@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Upload, Dices } from 'lucide-react';
+import { Download, Upload, Dices, ChevronUp, ChevronDown } from 'lucide-react';
 import { VariableCard } from './VariableCard';
 import { ConnectorCard } from './ConnectorCard';
 
@@ -88,9 +88,69 @@ export function Canvas({
     onItemsChange(newItems);
   };
 
+  const handleGlobalPreviousTags = () => {
+    const updatedItems = [...items];
+    updatedItems.forEach((item, index) => {
+      if (item.type === 'variable' && !item.isLocked && item.tags.length > 0) {
+        const currentIndex = item.tags.indexOf(item.selectedTag);
+        let newTag;
+        if (currentIndex > 0) {
+          newTag = item.tags[currentIndex - 1];
+        } else if (currentIndex === -1) {
+          newTag = item.tags[item.tags.length - 1];
+        } else {
+          newTag = item.tags[item.tags.length - 1];
+        }
+        updatedItems[index] = {
+          ...item,
+          selectedTag: newTag,
+          value: newTag
+        };
+      }
+    });
+    onItemsChange(updatedItems);
+  };
+
+  const handleGlobalNextTags = () => {
+    const updatedItems = [...items];
+    updatedItems.forEach((item, index) => {
+      if (item.type === 'variable' && !item.isLocked && item.tags.length > 0) {
+        const currentIndex = item.tags.indexOf(item.selectedTag);
+        let newTag;
+        if (currentIndex < item.tags.length - 1) {
+          newTag = item.tags[currentIndex + 1];
+        } else if (currentIndex === -1) {
+          newTag = item.tags[0];
+        } else {
+          newTag = item.tags[0];
+        }
+        updatedItems[index] = {
+          ...item,
+          selectedTag: newTag,
+          value: newTag
+        };
+      }
+    });
+    onItemsChange(updatedItems);
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-end gap-2 p-4 border-b">
+        <button
+          onClick={handleGlobalPreviousTags}
+          className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+          title="Previous Tags for All"
+        >
+          <ChevronUp size={16} />
+        </button>
+        <button
+          onClick={handleGlobalNextTags}
+          className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+          title="Next Tags for All"
+        >
+          <ChevronDown size={16} />
+        </button>
         <button
           onClick={() => {
             // Vytvoříme kopii items pro synchronní aktualizaci
@@ -162,7 +222,6 @@ export function Canvas({
               {item.type === 'variable' ? (
                 <VariableCard
                   variable={item}
-                  index={index}
                   onUpdate={(updatedVariable: any) => {
                     const newItems = [...items];
                     newItems[index] = {

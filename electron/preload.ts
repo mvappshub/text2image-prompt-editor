@@ -1,5 +1,8 @@
 import { contextBridge } from 'electron'
-import { IElectronAPI } from './electron'
+
+interface IElectronAPI {
+  prompt: (message: string) => string | null;
+}
 
 contextBridge.exposeInMainWorld('electron', {
   prompt: (message: string): string | null => {
@@ -7,7 +10,7 @@ contextBridge.exposeInMainWorld('electron', {
   }
 } as IElectronAPI)
 
-function domReady(condition: DocumentReadyState[] = ['complete', 'interactive']) {
+function domReady(condition: DocumentReadyState[] = ['complete', 'interactive']): Promise<boolean> {
   return new Promise(resolve => {
     if (condition.includes(document.readyState)) {
       resolve(true)
@@ -22,14 +25,14 @@ function domReady(condition: DocumentReadyState[] = ['complete', 'interactive'])
 }
 
 const safeDOM = {
-  append(parent: HTMLElement, child: HTMLElement) {
+  append(parent: HTMLElement, child: HTMLElement): HTMLElement | undefined {
     if (!Array.from(parent.children).find(e => e === child)) {
-      parent.appendChild(child)
+      return parent.appendChild(child)
     }
   },
-  remove(parent: HTMLElement, child: HTMLElement) {
+  remove(parent: HTMLElement, child: HTMLElement): HTMLElement | undefined {
     if (Array.from(parent.children).find(e => e === child)) {
-      parent.removeChild(child)
+      return parent.removeChild(child)
     }
   },
 }
@@ -78,11 +81,11 @@ function useLoading() {
   oDiv.innerHTML = `<div class="${className}"><div></div></div>`
 
   return {
-    appendLoading() {
+    appendLoading(): void {
       safeDOM.append(document.head, oStyle)
       safeDOM.append(document.body, oDiv)
     },
-    removeLoading() {
+    removeLoading(): void {
       safeDOM.remove(document.head, oStyle)
       safeDOM.remove(document.body, oDiv)
     },
@@ -94,7 +97,7 @@ function useLoading() {
 const { appendLoading, removeLoading } = useLoading()
 domReady().then(appendLoading)
 
-window.onmessage = ev => {
+window.onmessage = (ev: MessageEvent): void => {
   ev.data.payload === 'removeLoading' && removeLoading()
 }
 
