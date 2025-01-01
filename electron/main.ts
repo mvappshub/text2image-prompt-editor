@@ -1,8 +1,27 @@
-import { app, BrowserWindow, dialog, Menu, MenuItemConstructorOptions, WebContents, Event } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, MenuItem } from 'electron'
 import { join } from 'path'
-import { existsSync } from 'fs'
+import { existsSync, promises as fs } from 'fs'
+import { exec } from 'child_process'
+import { promisify } from 'util'
 
-let mainWindow: BrowserWindow | null = null
+const execAsync = promisify(exec);
+
+let mainWindow: BrowserWindow | null = null;
+
+// Disable GPU Acceleration for Windows 7
+if (process.platform === 'win32' && process.getSystemVersion() === '6.1') {
+  app.disableHardwareAcceleration()
+}
+
+// Set application name for Windows 10+ notifications
+if (process.platform === 'win32') {
+  app.setAppUserModelId(app.getName())
+}
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+  process.exit(0)
+}
 
 function getAssetPath(...paths: string[]): string {
   if (app.isPackaged) {
@@ -26,7 +45,7 @@ process.env.PUBLIC = VITE_PUBLIC
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 
 function createMenu(): void {
-  const template: MenuItemConstructorOptions[] = [
+  const template: Electron.MenuItemConstructorOptions[] = [
     {
       label: '&File',
       submenu: [
@@ -111,7 +130,7 @@ function createMenu(): void {
   Menu.setApplicationMenu(menu)
 }
 
-function createWindow(): void {
+async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -191,6 +210,46 @@ function createWindow(): void {
   }
 }
 
+// File system handlers
+ipcMain.handle('readDirectory', async (_event, path: string) => {
+  try {
+    // If path is empty, list available drives on Windows
+    if (!path) {
+      const { stdout } = await execAsync('wmic logicaldisk get caption');
+      const drives = stdout
+        .split('\n')
+        .slice(1) // Skip header
+        .map(drive => drive.trim())
+        .filter(drive => drive) // Remove empty lines
+        .map(drive => ({
+          name: drive,
+          path: drive + '\\',
+          isDirectory: true
+        }));
+      return drives;
+    }
+
+    const entries = await fs.readdir(path, { withFileTypes: true });
+    return entries.map(entry => ({
+      name: entry.name,
+      path: join(path, entry.name),
+      isDirectory: entry.isDirectory()
+    }));
+  } catch (error) {
+    console.error('Error reading directory:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('readFile', async (_event, path: string) => {
+  try {
+    return await fs.readFile(path, 'utf-8');
+  } catch (error) {
+    console.error('Error reading file:', error);
+    throw error;
+  }
+});
+
 // Správa životního cyklu aplikace
 app.on('window-all-closed', () => {
   mainWindow = null
@@ -209,9 +268,53 @@ app.on('activate', () => {
 })
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (error: Error) => {
+process.on('uncaughtException', (error) => {
   console.error('Uncaught exception:', error)
   dialog.showErrorBox('Application Error', `An unexpected error occurred: ${error.message}`)
 })
 
-app.whenReady().then(createWindow)
+app.whenReady().then(async () => {
+  await createWindow();
+
+  // Přidání kontextového menu pro textová pole
+  mainWindow?.webContents.on('context-menu', (event, params) => {
+    const menu = new Menu();
+    
+    // Pokud je text označený, přidat možnost kopírování
+    if (params.selectionText) {
+      menu.append(new MenuItem({
+        label: 'Kopírovat',
+        role: 'copy'
+      }));
+    }
+
+    // Pokud je pole editovatelné, přidat možnost vložení
+    if (params.isEditable) {
+      if (params.selectionText) {
+        menu.append(new MenuItem({ type: 'separator' }));
+      }
+      menu.append(new MenuItem({
+        label: 'Vložit',
+        role: 'paste'
+      }));
+    }
+
+    // Zobrazit menu pouze pokud má nějaké položky
+    if (menu.items.length > 0) {
+      menu.popup();
+    }
+  });
+
+  app.on('activate', async () => {
+    const allWindows = BrowserWindow.getAllWindows()
+    if (allWindows.length) {
+      allWindows[0].focus()
+    } else {
+      await createWindow()
+    }
+  });
+});
+
+process.on('uncaughtException', (error) => {
+  dialog.showErrorBox('Application Error', `An unexpected error occurred: ${error.message}`);
+});

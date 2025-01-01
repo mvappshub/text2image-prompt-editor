@@ -1,7 +1,13 @@
 import { X } from 'lucide-react';
 
+interface Connector {
+  id: string;
+  type: 'connector';
+  value: string;
+}
+
 export interface ConnectorCardProps {
-  connector: any;
+  connector: Connector;
   onChange: (value: string) => void;
   onRemove: () => void;
 }

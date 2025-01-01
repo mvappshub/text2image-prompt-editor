@@ -1,3 +1,3 @@
 @echo off
 echo Spoustim aplikaci...
-start "" index.html
+npm run dev

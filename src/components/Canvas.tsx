@@ -3,12 +3,30 @@ import { Download, Upload, Dices, ChevronUp, ChevronDown } from 'lucide-react';
 import { VariableCard } from './VariableCard';
 import { ConnectorCard } from './ConnectorCard';
 
+interface Variable {
+  id: string;
+  name: string;
+  tags: string[];
+  type: 'variable';
+  selectedTag: string;
+  separator: string;
+  isLocked: boolean;
+  weight: number;
+  value: string;
+}
+
+interface Connector {
+  id: string;
+  type: 'connector';
+  value: string;
+}
+
 interface CanvasProps {
-  items: any[];
-  onItemsChange: (items: any[]) => void;
+  items: (Variable | Connector)[];
+  onItemsChange: ((items: (Variable | Connector)[]) => void);
   onItemRemove: (id: string) => void;
   onConnectorChange: (id: string, value: string) => void;
-  onAddToSidebar: (variable: any) => void;
+  onAddToSidebar: (variable: Variable) => void;
 }
 
 export function Canvas({
@@ -24,14 +42,19 @@ export function Canvas({
   const handleAddVariable = () => {
     if (!newVariableName) return;
     const newId = `variable-${Date.now()}`;
-    onItemsChange([...items, { id: newId, name: newVariableName, tags: [], type: 'variable', value: '' }]);
+    onItemsChange([...items, { 
+      id: newId, 
+      name: newVariableName, 
+      tags: [], 
+      type: 'variable',
+      selectedTag: '',
+      separator: ',',
+      isLocked: false,
+      weight: 1.0,
+      value: ''
+    }]);
     setNewVariableName('');
     setIsModalOpen(false);
-  };
-
-  const handleAddConnector = () => {
-    const newId = `connector-${Date.now()}`;
-    onItemsChange([...items, { id: newId, type: 'connector', value: '' }]);
   };
 
   const handleExportTemplate = () => {
@@ -80,72 +103,70 @@ export function Canvas({
     reader.readAsText(file);
   };
 
-  const moveItem = (fromIndex: number, toIndex: number) => {
-    const newItems = [...items];
-    const item = newItems[fromIndex];
-    newItems.splice(fromIndex, 1);
-    newItems.splice(toIndex, 0, item);
-    onItemsChange(newItems);
-  };
-
-  const handleGlobalPreviousTags = () => {
-    const updatedItems = [...items];
-    updatedItems.forEach((item, index) => {
-      if (item.type === 'variable' && !item.isLocked && item.tags.length > 0) {
-        const currentIndex = item.tags.indexOf(item.selectedTag);
-        let newTag;
-        if (currentIndex > 0) {
-          newTag = item.tags[currentIndex - 1];
-        } else if (currentIndex === -1) {
-          newTag = item.tags[item.tags.length - 1];
-        } else {
-          newTag = item.tags[item.tags.length - 1];
-        }
-        updatedItems[index] = {
-          ...item,
-          selectedTag: newTag,
-          value: newTag
-        };
-      }
-    });
-    onItemsChange(updatedItems);
-  };
-
-  const handleGlobalNextTags = () => {
-    const updatedItems = [...items];
-    updatedItems.forEach((item, index) => {
-      if (item.type === 'variable' && !item.isLocked && item.tags.length > 0) {
-        const currentIndex = item.tags.indexOf(item.selectedTag);
-        let newTag;
-        if (currentIndex < item.tags.length - 1) {
-          newTag = item.tags[currentIndex + 1];
-        } else if (currentIndex === -1) {
-          newTag = item.tags[0];
-        } else {
-          newTag = item.tags[0];
-        }
-        updatedItems[index] = {
-          ...item,
-          selectedTag: newTag,
-          value: newTag
-        };
-      }
-    });
-    onItemsChange(updatedItems);
-  };
-
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-end gap-2 p-4 border-b">
         <button
-          onClick={handleGlobalPreviousTags}
+          onClick={() => {
+            const newConnector: Connector = {
+              id: `conn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              type: 'connector',
+              value: ','
+            };
+            onItemsChange([...items, newConnector]);
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-white border rounded hover:bg-gray-50"
+          title="Add Connector"
+        >
+          Add Connector
+        </button>
+        <button
+          onClick={() => {
+            const updatedItems = [...items];
+            updatedItems.forEach((item, index) => {
+              if (item.type === 'variable' && !item.isLocked && item.tags.length > 0) {
+                const currentIndex = item.tags.indexOf(item.selectedTag);
+                let newTag;
+                if (currentIndex > 0) {
+                  newTag = item.tags[currentIndex - 1];
+                } else {
+                  newTag = item.tags[item.tags.length - 1];
+                }
+                updatedItems[index] = {
+                  ...item,
+                  selectedTag: newTag,
+                  value: newTag
+                };
+              }
+            });
+            onItemsChange(updatedItems);
+          }}
           className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
           title="Previous Tags for All"
         >
           <ChevronUp size={16} />
         </button>
         <button
-          onClick={handleGlobalNextTags}
+          onClick={() => {
+            const updatedItems = [...items];
+            updatedItems.forEach((item, index) => {
+              if (item.type === 'variable' && !item.isLocked && item.tags.length > 0) {
+                const currentIndex = item.tags.indexOf(item.selectedTag);
+                let newTag;
+                if (currentIndex < item.tags.length - 1) {
+                  newTag = item.tags[currentIndex + 1];
+                } else {
+                  newTag = item.tags[0];
+                }
+                updatedItems[index] = {
+                  ...item,
+                  selectedTag: newTag,
+                  value: newTag
+                };
+              }
+            });
+            onItemsChange(updatedItems);
+          }}
           className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
           title="Next Tags for All"
         >
@@ -153,16 +174,9 @@ export function Canvas({
         </button>
         <button
           onClick={() => {
-            // Vytvoříme kopii items pro synchronní aktualizaci
             const updatedItems = [...items];
-            
-            // Najdeme všechny proměnné karty
-            const variableCards = document.querySelectorAll('[data-variable-card]');
-            
-            // Aktualizujeme každou kartu
-            variableCards.forEach((_, index) => {
-              const item = updatedItems[index];
-              if (item?.type === 'variable' && !item.isLocked && item.tags?.length > 0) {
+            updatedItems.forEach((item, index) => {
+              if (item.type === 'variable' && !item.isLocked && item.tags?.length > 0) {
                 const randomIndex = Math.floor(Math.random() * item.tags.length);
                 const newTag = item.tags[randomIndex];
                 updatedItems[index] = {
@@ -172,8 +186,6 @@ export function Canvas({
                 };
               }
             });
-            
-            // Aktualizujeme stav najednou
             onItemsChange(updatedItems);
           }}
           className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
@@ -182,18 +194,11 @@ export function Canvas({
           <Dices size={16} />
         </button>
         <button
-          onClick={handleAddConnector}
-          className="flex items-center gap-2 px-4 py-2 bg-white border rounded hover:bg-gray-50"
-          title="Add Connector"
-        >
-          Add Connector
-        </button>
-        <button
           onClick={() => document.getElementById('import-template')?.click()}
           className="flex items-center gap-2 px-4 py-2 bg-white border rounded hover:bg-gray-50"
           title="Import Template"
         >
-          <Download size={16} />
+          <Upload size={16} />
           Import Template
         </button>
         <button
@@ -201,7 +206,7 @@ export function Canvas({
           className="flex items-center gap-2 px-4 py-2 bg-white border rounded hover:bg-gray-50"
           title="Export Template"
         >
-          <Upload size={16} />
+          <Download size={16} />
           Export Template
         </button>
         <input
@@ -212,6 +217,7 @@ export function Canvas({
           className="hidden"
         />
       </div>
+
       <div className="flex-1 p-4 space-y-4 overflow-y-auto bg-gray-50">
         <div className="grid grid-cols-3 gap-4">
           {items.map((item, index) => (
@@ -222,7 +228,7 @@ export function Canvas({
               {item.type === 'variable' ? (
                 <VariableCard
                   variable={item}
-                  onUpdate={(updatedVariable: any) => {
+                  onUpdate={(updatedVariable: Variable) => {
                     const newItems = [...items];
                     newItems[index] = {
                       ...updatedVariable,
@@ -231,8 +237,8 @@ export function Canvas({
                     };
                     onItemsChange(newItems);
                   }}
-                  onRemove={() => onItemRemove(item.id)}
                   onAddToSidebar={() => onAddToSidebar(item)}
+                  onRemove={() => onItemRemove(item.id)}
                 />
               ) : (
                 <ConnectorCard
@@ -243,7 +249,13 @@ export function Canvas({
               )}
               <div className="absolute top-0 right-0 flex flex-col">
                 <button
-                  onClick={() => moveItem(index, index - 1)}
+                  onClick={() => {
+                    if (index > 0) {
+                      const newItems = [...items];
+                      [newItems[index - 1], newItems[index]] = [newItems[index], newItems[index - 1]];
+                      onItemsChange(newItems);
+                    }
+                  }}
                   disabled={index === 0}
                   className="p-1 text-gray-600 hover:bg-gray-100 rounded-full disabled:opacity-50"
                   title="Move Up"
@@ -251,7 +263,13 @@ export function Canvas({
                   ↑
                 </button>
                 <button
-                  onClick={() => moveItem(index, index + 1)}
+                  onClick={() => {
+                    if (index < items.length - 1) {
+                      const newItems = [...items];
+                      [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
+                      onItemsChange(newItems);
+                    }
+                  }}
                   disabled={index === items.length - 1}
                   className="p-1 text-gray-600 hover:bg-gray-100 rounded-full disabled:opacity-50"
                   title="Move Down"

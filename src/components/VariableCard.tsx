@@ -1,9 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Dices, LockKeyhole, X, List, BookmarkPlus, ChevronUp, ChevronDown, Plus, Minus } from 'lucide-react';
 
+interface Variable {
+  id: string;
+  name: string;
+  tags: string[];
+  type: 'variable';
+  selectedTag: string;
+  separator: string;
+  isLocked: boolean;
+  weight: number;
+  value: string;
+}
+
 interface VariableCardProps {
-  variable: any;
-  onUpdate: (variable: any) => void;
+  variable: Variable;
+  onUpdate: (variable: Variable) => void;
   onRemove: () => void;
   onAddToSidebar?: () => void;
 }
@@ -48,6 +60,7 @@ export function VariableCard({
         setIsDropdownOpen(false);
       }
     };
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -178,17 +191,19 @@ export function VariableCard({
           >
             <LockKeyhole size={16} />
           </button>
-          <button
-            onClick={onAddToSidebar}
-            className="p-1.5 text-gray-500 hover:text-blue-500 hover:bg-gray-100 rounded-lg"
-            title="Add to Sidebar"
-          >
-            <BookmarkPlus size={16} />
-          </button>
+          {onAddToSidebar && (
+            <button
+              onClick={onAddToSidebar}
+              className="p-1.5 text-gray-500 hover:text-blue-500 hover:bg-gray-100 rounded-lg"
+              title="Add to Sidebar"
+            >
+              <BookmarkPlus size={16} />
+            </button>
+          )}
           <button
             onClick={onRemove}
-            className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg"
             title="Remove"
+            className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg"
           >
             <X size={16} />
           </button>
@@ -271,6 +286,7 @@ export function VariableCard({
             </div>
           )}
         </div>
+
         <input
           type="text"
           value={separator}

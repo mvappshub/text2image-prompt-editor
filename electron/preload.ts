@@ -1,12 +1,16 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 
 interface IElectronAPI {
   prompt: (message: string) => string | null;
+  invoke: (channel: string, ...args: any[]) => Promise<any>;
 }
 
 contextBridge.exposeInMainWorld('electron', {
   prompt: (message: string): string | null => {
     return window.prompt(message)
+  },
+  invoke: (channel: string, ...args: any[]): Promise<any> => {
+    return ipcRenderer.invoke(channel, ...args)
   }
 } as IElectronAPI)
 

@@ -1,95 +1,54 @@
-import { Download, Upload } from 'lucide-react';
-import { importCsvVariables } from '../utils/csvImport';
+import { Download, Upload, X, Plus } from 'lucide-react';
+
+interface Variable {
+  id: string;
+  name: string;
+  tags: string[];
+  type: 'variable';
+  selectedTag: string;
+  separator: string;
+  isLocked: boolean;
+  weight: number;
+  value: string;
+}
 
 interface SidebarProps {
-  variables: any[];
-  onVariableCreate: (variable: any) => void;
-  onVariableDelete: (variableId: string) => void;
-  onImportVariables?: (variables: any[]) => void;
+  variables: Variable[];
+  onVariableCreate: (variable: Variable) => void;
+  onVariableRemove: (id: string) => void;
 }
 
 export function Sidebar({
   variables,
   onVariableCreate,
-  onVariableDelete,
-  onImportVariables,
+  onVariableRemove,
 }: SidebarProps) {
-  const escapeCSVCell = (cell: string): string => {
-    if (cell.includes(',') || cell.includes('"') || cell.includes('\n')) {
-      return `"${cell.replace(/"/g, '""')}"`;
-    }
-    return cell;
-  };
-
   const handleExport = () => {
     if (variables.length === 0) return;
 
-    // First row: variable names
-    const csvRows = [variables.map(v => escapeCSVCell(v.name)).join(',')];
-    
-    // Find the maximum number of tags across all variables
-    const maxTags = Math.max(...variables.map(v => v.tags.length));
-    
-    // Create rows for each tag
-    for (let i = 0; i < maxTags; i++) {
-      const row = variables.map(variable => {
-        const tag = variable.tags[i] || '';
-        return escapeCSVCell(tag);
-      });
-      csvRows.push(row.join(','));
-    }
+    const csvContent = variables
+      .map(variable => {
+        const name = variable.name.includes(',') ? `"${variable.name}"` : variable.name;
+        const tags = variable.tags
+          .map((tag: string) => tag.includes(',') ? `"${tag}"` : tag)
+          .join(',');
+        return `${name},${tags}`;
+      })
+      .join('\n');
 
-    // Create and download the file
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([`Name,Tags\n${csvContent}`], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'variables.csv';
+    link.href = url;
+    link.download = `variables-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(link.href);
-  };
-
-  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !onImportVariables) return;
-
-    const reader = new FileReader();
-    reader.onload = async (_e) => {
-      try {
-        const csvVariables = await importCsvVariables(file);
-        onImportVariables(csvVariables);
-      } catch (error) {
-        console.error('Import error:', error);
-        alert('Failed to import variables');
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.currentTarget.style.backgroundColor = '#f3f4f6';
-  };
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.currentTarget.style.backgroundColor = '';
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.currentTarget.style.backgroundColor = '';
-    const variableId = e.dataTransfer.getData('text/plain');
-    if (variableId) {
-      onVariableDelete(variableId);
-    }
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div 
-      className="h-full p-4 overflow-y-auto"
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
+    <div className="h-full w-64 flex-shrink-0 p-4 overflow-y-auto border-r border-gray-200 bg-white">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Variables</h2>
         <div className="flex gap-2">
@@ -109,45 +68,88 @@ export function Sidebar({
           </button>
         </div>
       </div>
+
+      <input
+        type="file"
+        id="import-csv"
+        accept=".csv,.txt"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const text = await file.text();
+            const isTsv = file.name.toLowerCase().endsWith('.txt');
+            const separator = isTsv ? '\t' : ',';
+            
+            const rows = text.split('\n')
+              .map(row => row.split(separator)
+                .map(cell => cell.trim().replace(/^"(.*)"$/, '$1'))
+              )
+              .filter(row => row.length > 0 && row.some(cell => cell !== ''));
+
+            if (rows.length > 0) {
+              // První řádek obsahuje názvy proměnných
+              const variableNames = rows[0].filter(name => name.trim() !== '');
+              
+              // Pro každý sloupec vytvoříme proměnnou
+              variableNames.forEach((name, columnIndex) => {
+                const tags = rows.slice(1)
+                  .map(row => row[columnIndex])
+                  .filter(tag => tag && tag.trim() !== '');
+
+                if (tags.length > 0) {
+                  const newVariable = {
+                    id: `var-${Date.now()}-${columnIndex}`,
+                    name: name.trim(),
+                    tags: tags,
+                    type: 'variable' as const,
+                    selectedTag: tags[0] || '',
+                    separator: ',',
+                    isLocked: false,
+                    weight: 1.0,
+                    value: tags[0] || ''
+                  };
+                  onVariableCreate(newVariable);
+                }
+              });
+            }
+          }
+        }}
+      />
+
+      {/* Variables List */}
       <div className="space-y-2">
-        {/* Removed only the Create Variable button, keeping all other functionality intact */}
-        <input
-          type="file"
-          id="import-csv"
-          accept=".csv"
-          onChange={handleImport}
-          className="hidden"
-        />
         {variables.map((variable) => (
           <div
             key={variable.id}
-            className="flex gap-2"
+            className="flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100"
           >
-            <button
-              className="flex-1 px-4 py-2 text-left text-sm bg-white hover:bg-gray-50 rounded-lg border"
-            >
-              {variable.name}
-            </button>
-            <button
-              onClick={() => {
-                const newVariable = {
-                  ...variable,
-                  id: `${variable.id}-${Date.now()}`
-                };
-                onVariableCreate(newVariable);
-              }}
-              className="p-1.5 text-gray-500 hover:text-blue-500 hover:bg-gray-100 rounded-lg"
-              title="Add to canvas"
-            >
-              +
-            </button>
-            <button
-              onClick={() => onVariableDelete(variable.id)}
-              className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg"
-              title="Delete variable"
-            >
-              ×
-            </button>
+            <div>
+              <div className="font-medium">{variable.name}</div>
+              <div className="text-sm text-gray-500">{variable.tags.length} tags</div>
+            </div>
+            <div className="flex gap-1">
+              <button
+                onClick={() => {
+                  const newVariable = {
+                    ...variable,
+                    id: `var-${Date.now()}`,
+                  };
+                  onVariableCreate(newVariable);
+                }}
+                className="p-1 text-gray-400 hover:text-gray-600"
+                title="Add to Canvas"
+              >
+                <Plus size={16} />
+              </button>
+              <button
+                onClick={() => onVariableRemove(variable.id)}
+                className="p-1 text-gray-400 hover:text-red-600"
+                title="Remove Variable"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
         ))}
       </div>
